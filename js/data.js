@@ -141,6 +141,7 @@
    * @property {string} [numeroProposta]
    * @property {string} [numeroContrato]
    * @property {string} [origemVenda] - ATIVO | RECEPTIVO | INDICACAO | TELEMARKETING
+   * @property {string} [clienteId] - ref. opcional ao cadastro de clientes
    * @property {string} [clienteNome]
    * @property {string} [clienteCpf] - só dígitos
    * @property {string} [beneficioInss]
@@ -549,6 +550,8 @@
       if (!Number.isNaN(ct) && ct >= 0 && ct <= 1) comissaoTabela = ct;
     }
 
+    const clienteIdRaw = o.clienteId != null ? String(o.clienteId).trim() : '';
+
     /** @type {OperacaoMaycred} */
     const out = {
       id: String(o.id || ''),
@@ -587,6 +590,7 @@
       promotoraNome: o.promotoraNome != null ? String(o.promotoraNome).trim() : '',
     };
     if (comissaoTabela !== undefined) out.comissaoTabela = comissaoTabela;
+    if (clienteIdRaw) out.clienteId = clienteIdRaw;
     return out;
   }
 

@@ -325,15 +325,28 @@
     const Cal = global.MaycredCalendar;
 
     let editingId = null;
+    /** '' = usar mês ativo do app; '__todos__' = todas as propostas suas */
+    let filtroMesPropostas = '';
+
+    function mesDaOperacao(o) {
+      if (o.mes && String(o.mes).length >= 7) return String(o.mes).slice(0, 7);
+      if (o.data && String(o.data).length >= 7) return String(o.data).slice(0, 7);
+      return '';
+    }
 
     function minhasOps(st) {
-      return st.operacoes
-        .filter(function (o) {
-          return String(o.vendedoraId) === String(vid);
-        })
-        .sort(function (a, b) {
-          return String(b.data || '').localeCompare(String(a.data || ''));
+      let list = st.operacoes.filter(function (o) {
+        return String(o.vendedoraId) === String(vid);
+      });
+      if (filtroMesPropostas !== '__todos__') {
+        const m = filtroMesPropostas || st.config.mesAtual || '';
+        list = list.filter(function (o) {
+          return mesDaOperacao(o) === m;
         });
+      }
+      return list.sort(function (a, b) {
+        return String(b.data || '').localeCompare(String(a.data || ''));
+      });
     }
 
     function paint() {
@@ -349,7 +362,7 @@
         ),
       );
 
-      const top = el('div', 'ui-flex-gap');
+      const top = el('div', 'ui-flex-gap ui-flex-gap--wrap');
       const btnNova = el('button', 'ui-btn ui-btn--primary', '+ Nova proposta');
       btnNova.type = 'button';
       btnNova.addEventListener('click', function () {
@@ -357,6 +370,23 @@
         paint();
       });
       top.appendChild(btnNova);
+
+      const fMes = el('div', 'ui-field ui-field--inline');
+      fMes.appendChild(el('span', 'ui-field__label', 'Listar'));
+      const selMesF = el('select', 'ui-select');
+      const optMesAtivo = el('option', null, 'Mês ativo (' + (st.config.mesAtual || '—') + ')');
+      optMesAtivo.value = '';
+      const optTodos = el('option', null, 'Todos os meses');
+      optTodos.value = '__todos__';
+      selMesF.appendChild(optMesAtivo);
+      selMesF.appendChild(optTodos);
+      selMesF.value = filtroMesPropostas;
+      selMesF.addEventListener('change', function () {
+        filtroMesPropostas = selMesF.value;
+        paint();
+      });
+      fMes.appendChild(selMesF);
+      top.appendChild(fMes);
       wrap.appendChild(top);
 
       const ops = minhasOps(st);
@@ -624,6 +654,12 @@
         o.value = c.id;
         selCli.appendChild(o);
       });
+      if (opEdit && opEdit.clienteId) {
+        const hasC = Array.prototype.some.call(selCli.options, function (o) {
+          return o.value === opEdit.clienteId;
+        });
+        if (hasC) selCli.value = opEdit.clienteId;
+      }
       fPick.appendChild(selCli);
       g2.appendChild(fPick);
 
@@ -1042,6 +1078,7 @@
           origemVenda: selOrig.value,
           clienteNome: inpNome.value.trim(),
           clienteCpf: cpfOk,
+          clienteId: selCli.value.trim() || '',
           beneficioInss: inpBen.value.trim(),
           especieBeneficio: selEsp.value,
           ufBeneficio: selUf.value,

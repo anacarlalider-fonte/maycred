@@ -2205,6 +2205,27 @@ pre,
   align-items: center;
 }
 
+.ui-flex-gap--wrap {
+  flex-wrap: wrap;
+}
+
+.ui-field--inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.ui-field--inline .ui-field__label {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.ui-field--inline .ui-select {
+  min-width: 12rem;
+}
+
 .ui-dias-resumo {
   margin-top: 1rem;
   padding: 1rem;

@@ -167,143 +167,149 @@
     root.innerHTML = '';
     root.className = 'app app--login';
 
-    const card = document.createElement('div');
-    card.className = 'login-card login-card--wide';
+    const shell = document.createElement('div');
+    shell.className = 'login-shell';
 
-    const title = document.createElement('h1');
-    title.className = 'login-card__brand';
-    title.textContent = 'Maycred';
+    const brand = document.createElement('div');
+    brand.className = 'login-brand';
+    const logo = document.createElement('img');
+    logo.className = 'login-brand__img';
+    logo.src = 'assets/logo-maycred.svg';
+    logo.alt = 'MAY CRED Financeira';
+    logo.width = 320;
+    logo.height = 80;
+    brand.appendChild(logo);
+    shell.appendChild(brand);
+
+    const card = document.createElement('div');
+    card.className = 'login-card login-card--premium';
+
+    const kicker = document.createElement('p');
+    kicker.className = 'login-card__kicker';
+    kicker.textContent = 'Portal corporativo';
+    card.appendChild(kicker);
+
+    const title = document.createElement('h2');
+    title.className = 'login-card__title';
+    title.textContent = 'Acesso ao sistema';
     card.appendChild(title);
 
-    const tabs = document.createElement('div');
-    tabs.className = 'login-tabs';
-    const btnGestor = document.createElement('button');
-    btnGestor.type = 'button';
-    btnGestor.className = 'login-tabs__btn login-tabs__btn--active';
-    btnGestor.textContent = 'Gestão';
-    const btnVend = document.createElement('button');
-    btnVend.type = 'button';
-    btnVend.className = 'login-tabs__btn';
-    btnVend.textContent = 'Vendedora';
-    tabs.appendChild(btnGestor);
-    tabs.appendChild(btnVend);
-    card.appendChild(tabs);
+    const panel = document.createElement('div');
+    panel.className = 'login-panel';
 
-    const panelGestor = document.createElement('div');
-    panelGestor.className = 'login-panel';
-    const subG = document.createElement('p');
-    subG.className = 'login-card__hint';
-    subG.textContent = 'Senha da gestão';
-    panelGestor.appendChild(subG);
-    const senhaGestor = document.createElement('input');
-    senhaGestor.type = 'password';
-    senhaGestor.className = 'ui-input';
-    senhaGestor.style.width = '100%';
-    senhaGestor.style.marginBottom = '0.65rem';
-    senhaGestor.placeholder = 'Senha';
-    senhaGestor.autocomplete = 'current-password';
-    const goGestor = document.createElement('button');
-    goGestor.type = 'button';
-    goGestor.className = 'ui-btn ui-btn--primary login-card__btn';
-    goGestor.textContent = 'Entrar';
-    const errGestor = document.createElement('p');
-    errGestor.className = 'login-card__err';
-    panelGestor.appendChild(senhaGestor);
-    panelGestor.appendChild(goGestor);
-    panelGestor.appendChild(errGestor);
+    const hint = document.createElement('p');
+    hint.className = 'login-card__hint';
+    hint.textContent =
+      'Entre com o usuário e a senha cadastrados em Configurações. O perfil (ADM, Líder ou Venda) define o que você vê após o login.';
 
-    const panelVend = document.createElement('div');
-    panelVend.className = 'login-panel';
-    panelVend.style.display = 'none';
-    const subV = document.createElement('p');
-    subV.className = 'login-card__hint';
-    subV.textContent =
-      'Usuário e senha definidos em Configurações → Vendedoras. O perfil (ADM, Líder ou Venda) define o que aparece no menu.';
-    panelVend.appendChild(subV);
+    const wrapUser = document.createElement('div');
+    wrapUser.className = 'login-field';
+    const labUser = document.createElement('label');
+    labUser.className = 'login-field__label';
+    labUser.setAttribute('for', 'login-usuario');
+    labUser.textContent = 'Usuário';
     const inpUser = document.createElement('input');
     inpUser.type = 'text';
     inpUser.className = 'ui-input';
-    inpUser.style.width = '100%';
-    inpUser.style.marginBottom = '0.5rem';
-    inpUser.placeholder = 'Usuário';
+    inpUser.placeholder = 'Seu usuário';
     inpUser.autocomplete = 'username';
+    inpUser.id = 'login-usuario';
+    wrapUser.appendChild(labUser);
+    wrapUser.appendChild(inpUser);
+
+    const wrapPass = document.createElement('div');
+    wrapPass.className = 'login-field';
+    const labPass = document.createElement('label');
+    labPass.className = 'login-field__label';
+    labPass.setAttribute('for', 'login-senha');
+    labPass.textContent = 'Senha';
     const inpPass = document.createElement('input');
     inpPass.type = 'password';
     inpPass.className = 'ui-input';
-    inpPass.style.width = '100%';
-    inpPass.style.marginBottom = '0.65rem';
-    inpPass.placeholder = 'Senha';
+    inpPass.id = 'login-senha';
+    inpPass.placeholder = '••••••••';
     inpPass.autocomplete = 'current-password';
-    const goVend = document.createElement('button');
-    goVend.type = 'button';
-    goVend.className = 'ui-btn ui-btn--primary login-card__btn';
-    goVend.textContent = 'Entrar';
-    const errVend = document.createElement('p');
-    errVend.className = 'login-card__err';
-    panelVend.appendChild(inpUser);
-    panelVend.appendChild(inpPass);
-    panelVend.appendChild(goVend);
-    panelVend.appendChild(errVend);
+    wrapPass.appendChild(labPass);
+    wrapPass.appendChild(inpPass);
 
-    card.appendChild(panelGestor);
-    card.appendChild(panelVend);
-    root.appendChild(card);
+    const goBtn = document.createElement('button');
+    goBtn.type = 'button';
+    goBtn.className = 'login-btn--gold';
+    goBtn.textContent = 'Entrar';
 
-    function showTab(which) {
-      errGestor.textContent = '';
-      errVend.textContent = '';
-      if (which === 'gestor') {
-        btnGestor.classList.add('login-tabs__btn--active');
-        btnVend.classList.remove('login-tabs__btn--active');
-        panelGestor.style.display = '';
-        panelVend.style.display = 'none';
-      } else {
-        btnVend.classList.add('login-tabs__btn--active');
-        btnGestor.classList.remove('login-tabs__btn--active');
-        panelGestor.style.display = 'none';
-        panelVend.style.display = '';
+    const errEl = document.createElement('p');
+    errEl.className = 'login-card__err';
+
+    const foot = document.createElement('p');
+    foot.className = 'login-card__hint login-card__hint--sub';
+    foot.innerHTML =
+      'Primeiro acesso sem equipe cadastrada? Use o usuário <strong>gestor</strong> e a senha de gestão. Depois cadastre os demais em Configurações.';
+
+    panel.appendChild(hint);
+    panel.appendChild(wrapUser);
+    panel.appendChild(wrapPass);
+    panel.appendChild(goBtn);
+    panel.appendChild(errEl);
+    panel.appendChild(foot);
+    card.appendChild(panel);
+    shell.appendChild(card);
+
+    const shellFoot = document.createElement('p');
+    shellFoot.className = 'login-shell__footer';
+    shellFoot.textContent = 'Maycred Metas · uso interno';
+    shell.appendChild(shellFoot);
+
+    root.appendChild(shell);
+
+    function tryLogin() {
+      errEl.textContent = '';
+      const u = inpUser.value.trim().toLowerCase();
+      const p = inpPass.value;
+      if (!u) {
+        errEl.textContent = 'Informe o usuário.';
+        return;
       }
-    }
-
-    btnGestor.addEventListener('click', function () {
-      showTab('gestor');
-    });
-    btnVend.addEventListener('click', function () {
-      showTab('vendedora');
-    });
-
-    function tryGestor() {
-      errGestor.textContent = '';
-      if (MaycredAuth.loginGestor(senhaGestor.value)) {
-        senhaGestor.value = '';
-        showAppShell();
-      } else errGestor.textContent = 'Senha incorreta.';
-    }
-    goGestor.addEventListener('click', tryGestor);
-    senhaGestor.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') tryGestor();
-    });
-
-    function tryVend() {
-      errVend.textContent = '';
-      goVend.disabled = true;
-      MaycredAuth.loginVendedora(inpUser.value, inpPass.value)
+      if (!p) {
+        errEl.textContent = 'Informe a senha.';
+        return;
+      }
+      if (u === 'gestor') {
+        if (MaycredAuth.loginGestor(p)) {
+          inpPass.value = '';
+          showAppShell();
+        } else {
+          errEl.textContent = 'Usuário ou senha incorretos.';
+        }
+        return;
+      }
+      goBtn.disabled = true;
+      MaycredAuth.loginVendedora(u, p)
         .then(function (ok) {
-          goVend.disabled = false;
+          goBtn.disabled = false;
           if (ok) {
             inpPass.value = '';
             showAppShell();
-          } else errVend.textContent = 'Usuário ou senha incorretos, ou acesso ainda não cadastrado.';
+          } else {
+            errEl.textContent =
+              'Usuário ou senha incorretos, ou acesso ainda não cadastrado em Configurações.';
+          }
         })
         .catch(function (err) {
-          goVend.disabled = false;
-          errVend.textContent = String(err && err.message ? err.message : err);
+          goBtn.disabled = false;
+          errEl.textContent = String(err && err.message ? err.message : err);
         });
     }
-    goVend.addEventListener('click', tryVend);
-    inpPass.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') tryVend();
+
+    goBtn.addEventListener('click', tryLogin);
+    inpUser.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') tryLogin();
     });
+    inpPass.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') tryLogin();
+    });
+    try {
+      inpUser.focus();
+    } catch (_) {}
   }
 
   function showAppShell() {

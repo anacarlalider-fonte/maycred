@@ -1,0 +1,36 @@
+# Publica em produção na Vercel a cada push na branch main.
+#
+# Configure no GitHub: Settings → Secrets and variables → Actions
+#   VERCEL_TOKEN       → https://vercel.com/account/tokens
+#   VERCEL_ORG_ID      → team_... (Settings do time na Vercel, ou em .vercel/project.json)
+#   VERCEL_PROJECT_ID  → prj_... (idem)
+#
+# Se o projeto já estiver com "Git" ligado na Vercel para este repositório, cada push
+# já gera deploy — aí você pode desativar OU este workflow OU o deploy automático da Vercel
+# (evita dois deploys por push).
+
+name: Deploy Vercel (production)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'

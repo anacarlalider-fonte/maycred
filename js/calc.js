@@ -313,12 +313,37 @@
     return { pctAtual, pctComExtra, faltaPara100 };
   }
 
+  /**
+   * Simulação na visão vendedora: % pelo pago (sem expor meta em R$ na UI).
+   * Assume o valor extra como rentabilidade que cairia no “pago” (ex.: operação já averbada).
+   * @param {{ pago: number }} row — retorno de calcVendedora
+   * @param {number} valorFinanciadoExtra
+   * @param {number} comissaoDecimal — ex.: 0,40
+   * @param {number} metaProducao
+   */
+  function calcSimulacaoVendedoraPago(row, valorFinanciadoExtra, comissaoDecimal, metaProducao) {
+    const pago = row && typeof row.pago === 'number' ? row.pago : 0;
+    const meta = Number(metaProducao);
+    const vf = Number(valorFinanciadoExtra);
+    const taxa = Number(comissaoDecimal);
+    const delta =
+      (Number.isNaN(vf) ? 0 : Math.max(0, vf)) * (Number.isNaN(taxa) ? 0 : Math.min(1, Math.max(0, taxa)));
+    const pctAtual = meta > 0 ? (pago / meta) * 100 : 0;
+    const pctComExtra = meta > 0 ? ((pago + delta) / meta) * 100 : 0;
+    return {
+      pctAtual: Math.round(pctAtual * 100) / 100,
+      pctComExtra: Math.round(pctComExtra * 100) / 100,
+      faltaPctPara100: Math.max(0, Math.round((100 - pctComExtra) * 100) / 100),
+    };
+  }
+
   global.MaycredCalc = {
     calcVendedora,
     calcMetaDiaria,
     calcTime,
     computeMesSnapshot,
     calcSimulacao,
+    calcSimulacaoVendedoraPago,
     taxaComissaoVendedora,
     metaBatidaVendedora,
     faixaDesempenhoVendedora,

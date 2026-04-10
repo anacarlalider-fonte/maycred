@@ -91,9 +91,14 @@
     return s !== null && s.perfil === 'vendedora';
   }
 
+  /** Vendedora com perfil Venda: opera no app de campo (não vê painel completo do gestor). */
+  function isVendedoraCampo() {
+    return isVendedora() && !hasPainelGestor();
+  }
+
   /**
    * ADM ou Líder: mesmo painel lateral do gestor, com rotas filtradas por permissão.
-   * Venda: somente dashboard pessoal.
+   * Venda: área da vendedora (4 abas: desempenho, clientes, propostas, simulador).
    */
   function hasPainelGestor() {
     if (isGestor()) return true;
@@ -164,6 +169,7 @@
     logout,
     isGestor,
     isVendedora,
+    isVendedoraCampo,
     hasPainelGestor,
     getPerfilAcessoAtual,
     rotaPermitida,

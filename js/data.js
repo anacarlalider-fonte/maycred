@@ -590,6 +590,27 @@
     return out;
   }
 
+  function digitsCpfCliente(s) {
+    return String(s || '')
+      .replace(/\D/g, '')
+      .slice(0, 11);
+  }
+
+  /** @param {unknown} raw */
+  function normalizeClienteRow(raw) {
+    const row = raw && typeof raw === 'object' ? /** @type {Record<string, unknown>} */ (raw) : {};
+    return {
+      id: String(row.id || ''),
+      nome: String(row.nome != null ? row.nome : '').trim(),
+      cpf: digitsCpfCliente(row.cpf),
+      celular: String(row.celular != null ? row.celular : '').trim(),
+      observacoes: String(row.observacoes != null ? row.observacoes : '').trim(),
+      ativo: row.ativo !== false,
+      dataCadastro:
+        String(row.dataCadastro || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
+    };
+  }
+
   /** @returns {AppState} */
   function emptyState() {
     const promotoras = defaultPromotoras().map(normalizePromotoraRow);
@@ -600,6 +621,7 @@
       metas: defaultMetas(),
       lancamentos: defaultLancamentos(),
       operacoes: [],
+      clientes: [],
       diasUteis: defaultDiasUteis(),
       promotoras: promotoras,
       bancos: bancos.map(normalizeBancoRow),
@@ -676,12 +698,17 @@
 
     const permissoesPerfil = mergePermissoesPerfil(o.permissoesPerfil);
 
+    const clientes = Array.isArray(o.clientes)
+      ? /** @type {unknown[]} */ (o.clientes).filter(Boolean).map(normalizeClienteRow)
+      : base.clientes;
+
     return {
       config,
       vendedoras,
       metas,
       lancamentos,
       operacoes,
+      clientes,
       diasUteis,
       bancos,
       promotoras,
@@ -719,6 +746,10 @@
   }
   ensureConfigOperacoes(cache.config);
   if (!Array.isArray(cache.operacoes)) cache.operacoes = [];
+  if (!Array.isArray(cache.clientes)) {
+    cache.clientes = [];
+    saveState(cache);
+  }
   if (!Array.isArray(cache.promotoras) || cache.promotoras.length === 0) {
     cache.promotoras = defaultPromotoras().map(normalizePromotoraRow);
     saveState(cache);
@@ -767,6 +798,7 @@
       metas: cache.metas.map((m) => ({ ...m })),
       lancamentos: cache.lancamentos.map((l) => ({ ...l })),
       operacoes: cache.operacoes.map((o) => ({ ...o })),
+      clientes: (cache.clientes || []).map((c) => ({ ...normalizeClienteRow(c) })),
       diasUteis: Object.fromEntries(
         Object.entries(cache.diasUteis).map(([k, arr]) => [k, [...arr]])
       ),
@@ -973,6 +1005,103 @@
     persist();
   }
 
+  /**
+   * Atualiza proposta somente se pertencer à vendedora (isolamento).
+   * @param {string} id
+   * @param {Partial<OperacaoMaycred>} patch
+   * @param {string} vendedoraId
+   */
+  function updateOperacaoSeDono(id, patch, vendedoraId) {
+    const vid = String(vendedoraId);
+    const o = cache.operacoes.find(function (x) {
+      return x.id === id;
+    });
+    if (!o || String(o.vendedoraId) !== vid) return false;
+    const safe = { ...patch };
+    delete safe.vendedoraId;
+    return updateOperacao(id, safe);
+  }
+
+  /**
+   * Remove proposta somente se pertencer à vendedora.
+   * @param {string} id
+   * @param {string} vendedoraId
+   */
+  function removeOperacaoSeDono(id, vendedoraId) {
+    const vid = String(vendedoraId);
+    const o = cache.operacoes.find(function (x) {
+      return x.id === id;
+    });
+    if (!o || String(o.vendedoraId) !== vid) return false;
+    removeOperacao(id);
+    return true;
+  }
+
+  /**
+   * Inclui operação já fixando a vendedora (ignora `vendedoraId` vindo do cliente).
+   * @param {OperacaoMaycred} op
+   * @param {string} vendedoraId
+   */
+  function addOperacaoComoVendedora(op, vendedoraId) {
+    addOperacao({ ...op, vendedoraId: String(vendedoraId) });
+  }
+
+  function listClientes() {
+    return (cache.clientes || []).map(function (c) {
+      return { ...normalizeClienteRow(c) };
+    });
+  }
+
+  /** @param {string} id */
+  function getClienteById(id) {
+    const sid = String(id);
+    const row = (cache.clientes || []).find(function (c) {
+      return String(c.id) === sid;
+    });
+    return row ? normalizeClienteRow(row) : null;
+  }
+
+  /** @param {Record<string, unknown>} row */
+  function addCliente(row) {
+    if (!Array.isArray(cache.clientes)) cache.clientes = [];
+    const c = normalizeClienteRow(row);
+    if (!c.id) c.id = newId('cli');
+    cache.clientes.push(c);
+    persist();
+    return c.id;
+  }
+
+  /**
+   * @param {string} id
+   * @param {Record<string, unknown>} patch
+   */
+  function updateCliente(id, patch) {
+    if (!Array.isArray(cache.clientes)) return false;
+    const i = cache.clientes.findIndex(function (c) {
+      return String(c.id) === String(id);
+    });
+    if (i < 0) return false;
+    cache.clientes[i] = normalizeClienteRow({
+      ...cache.clientes[i],
+      ...patch,
+      id: cache.clientes[i].id,
+    });
+    persist();
+    return true;
+  }
+
+  /** @param {string} id */
+  function removeCliente(id) {
+    if (!Array.isArray(cache.clientes)) return false;
+    const len = cache.clientes.length;
+    cache.clientes = cache.clientes.filter(function (c) {
+      return String(c.id) !== String(id);
+    });
+    if (cache.clientes.length === len) return false;
+    persist();
+    return true;
+  }
+
   /** @param {string} mes - YYYY-MM
    * @param {string[]} datas
    */
@@ -1129,6 +1258,14 @@
     addOperacao,
     updateOperacao,
     removeOperacao,
+    updateOperacaoSeDono,
+    removeOperacaoSeDono,
+    addOperacaoComoVendedora,
+    listClientes,
+    getClienteById,
+    addCliente,
+    updateCliente,
+    removeCliente,
     setDiasUteisMes,
     resetToDefaults,
     newId,

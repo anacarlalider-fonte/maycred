@@ -17,7 +17,8 @@
     typeof MaycredAuth === 'undefined' ||
     typeof MaycredUI === 'undefined' ||
     typeof MaycredCalc === 'undefined' ||
-    typeof MaycredCalendar === 'undefined'
+    typeof MaycredCalendar === 'undefined' ||
+    typeof MaycredVendUI === 'undefined'
   ) {
     root.className = 'app app--boot-err';
     root.innerHTML =
@@ -33,6 +34,34 @@
 
   /** @type {string|null} */
   let telaAtual = null;
+
+  /** Rota ativa na área vendedora (perfil Venda). */
+  let telaVendedoraAtual = 'vendDesempenho';
+
+  const ROTAS_VENDEDORA = [
+    ['vendDesempenho', 'Desempenho'],
+    ['vendClientes', 'Clientes'],
+    ['vendPropostas', 'Propostas'],
+    ['vendSimulador', 'Simulador'],
+  ];
+
+  function navigateVendedora(tela) {
+    safeDestroyCharts();
+    const content = document.getElementById('app-content');
+    if (!content || !MaycredAuth.isLoggedIn()) return;
+
+    const permitidas = ROTAS_VENDEDORA.map(function (p) {
+      return p[0];
+    });
+    const t = permitidas.indexOf(tela) >= 0 ? tela : 'vendDesempenho';
+    telaVendedoraAtual = t;
+
+    document.querySelectorAll('.app-vend-tab').forEach(function (b) {
+      b.classList.toggle('app-vend-tab--active', b.getAttribute('data-tela') === t);
+    });
+
+    MaycredVendUI.paint(content, t);
+  }
 
   function primeiraRotaLiberada() {
     const ordem = [
@@ -50,7 +79,10 @@
   }
 
   function navigate(tela) {
-    if (MaycredAuth.isVendedora() && !MaycredAuth.hasPainelGestor()) return;
+    if (MaycredAuth.isVendedoraCampo()) {
+      navigateVendedora(tela);
+      return;
+    }
 
     safeDestroyCharts();
 
@@ -450,8 +482,23 @@
 
     root.appendChild(layout);
 
-    if (MaycredAuth.isVendedora() && !MaycredAuth.hasPainelGestor()) {
-      MaycredUI.renderDashboardVendedora(main);
+    if (MaycredAuth.isVendedoraCampo()) {
+      const tabbar = document.createElement('nav');
+      tabbar.className = 'app-vend-tabbar';
+      tabbar.setAttribute('aria-label', 'Menu vendedora');
+      ROTAS_VENDEDORA.forEach(function (pair) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'app-vend-tab';
+        b.setAttribute('data-tela', pair[0]);
+        b.textContent = pair[1];
+        b.addEventListener('click', function () {
+          navigateVendedora(pair[0]);
+        });
+        tabbar.appendChild(b);
+      });
+      root.appendChild(tabbar);
+      navigateVendedora(telaVendedoraAtual);
     } else if (MaycredAuth.hasPainelGestor()) {
       const r0 = primeiraRotaLiberada();
       if (r0) navigate(r0);
@@ -482,7 +529,10 @@
     init,
     refreshCurrent: function () {
       if (!MaycredAuth.isLoggedIn()) return;
-      if (MaycredAuth.isVendedora() && !MaycredAuth.hasPainelGestor()) return;
+      if (MaycredAuth.isVendedoraCampo()) {
+        navigateVendedora(telaVendedoraAtual);
+        return;
+      }
       if (telaAtual && telaAtual !== 'semPermissao') navigate(telaAtual);
     },
   };

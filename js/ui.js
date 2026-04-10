@@ -1306,11 +1306,17 @@
 
     const wrap = el('div', 'ui-vend-dash');
     wrap.appendChild(el('h2', 'ui-section__title', self.nome));
-    wrap.appendChild(el('p', 'ui-muted ui-vend-dash__mes', 'Mês ' + mes + ' · progresso pelo que já foi pago'));
+    wrap.appendChild(
+      el(
+        'p',
+        'ui-muted ui-vend-dash__mes',
+        'Mês ' + mes + ' · percentual atingido pelo que já entrou como pago na sua meta',
+      ),
+    );
 
     const hero = el('div', 'ui-vend-hero ui-vend-hero--' + faixa);
     hero.appendChild(el('div', 'ui-vend-hero__pct', Math.round(pct) + '%'));
-    hero.appendChild(el('div', 'ui-vend-hero__sub', 'Rentabilidade paga ÷ meta (R$)'));
+    hero.appendChild(el('div', 'ui-vend-hero__sub', '% atingido (sem exibir valores em reais)'));
     const bar = el('div', 'ui-vend-bar');
     const trk = el('div', 'ui-vend-bar__track');
     const fl = el('div', 'ui-vend-bar__fill ui-vend-bar__fill--' + faixa);

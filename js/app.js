@@ -483,6 +483,7 @@
     root.appendChild(layout);
 
     if (MaycredAuth.isVendedoraCampo()) {
+      telaVendedoraAtual = 'vendDesempenho';
       const tabbar = document.createElement('nav');
       tabbar.className = 'app-vend-tabbar';
       tabbar.setAttribute('aria-label', 'Menu vendedora');

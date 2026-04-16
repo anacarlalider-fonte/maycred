@@ -367,7 +367,7 @@
       el(
         'p',
         'ui-muted',
-        'Em cada fase há duas colunas: valor produzido (R$) e receita / rentabilidade (R$). Objetivo = meta de produção e meta de rentabilidade. Total receita é a soma das receitas das fases (análise + averbada). Salve para gravar; se receita em análise estiver vazia, usa a taxa PORT/ENTRANTE. Produção averbada vazia = total produção menos o que está em análise.',
+        'Em cada fase: valor produzido (R$), taxa automática receita ÷ produção (%), e receita (R$). A % é a comissão efetiva sobre o produzido naquele estágio. Objetivo = metas de volume e rentabilidade com a mesma taxa entre elas. As % usam os valores já salvos no cálculo; após editar células, salve para atualizar. Produção averbada vazia = total menos análise.',
       ),
     );
 
@@ -442,6 +442,17 @@
       return td;
     }
 
+    /** Taxa efetiva: receita (R$) / produção (R$) → % (comissão implícita sobre o produzido). */
+    function pctReceitaSobreProducao(label, receitaR, producaoR) {
+      const td = el('td', 'ui-mono ui-producao-pct-cell');
+      td.setAttribute('data-label', label);
+      const p = Number(producaoR);
+      const r = Number(receitaR);
+      if (!(p > 0) || !Number.isFinite(r)) td.textContent = '—';
+      else td.textContent = (Math.round((r / p) * 100 * 100) / 100) + '%';
+      return td;
+    }
+
     function paint() {
       clear(tw);
       clear(twResumo);
@@ -467,10 +478,10 @@
         return th;
       }
       trPhase.appendChild(phaseTh('', 3, 'Identificação'));
-      trPhase.appendChild(phaseTh('', 2, 'Objetivo'));
-      trPhase.appendChild(phaseTh('ui-producao-phase-head--analise', 2, 'Em análise'));
-      trPhase.appendChild(phaseTh('ui-producao-phase-head--averb', 2, 'Averbada / pago'));
-      trPhase.appendChild(phaseTh('', 2, 'Total (soma)'));
+      trPhase.appendChild(phaseTh('', 3, 'Objetivo'));
+      trPhase.appendChild(phaseTh('ui-producao-phase-head--analise', 3, 'Em análise'));
+      trPhase.appendChild(phaseTh('ui-producao-phase-head--averb', 3, 'Averbada / pago'));
+      trPhase.appendChild(phaseTh('', 3, 'Total (soma)'));
       thead.appendChild(trPhase);
       const hr = el('tr');
       [
@@ -478,12 +489,16 @@
         'DISC',
         'Produto',
         'Meta produção (R$)',
+        '% (rent./prod.)',
         'Meta rentabilidade (R$)',
         'Produção em análise (R$)',
+        '% (rec./prod.)',
         'Receita em análise (R$)',
         'Produção averbada (R$)',
+        '% (rec./prod.)',
         'Receita averbada / pago (R$)',
         'Total produção (R$)',
+        '% (rec./prod.)',
         'Total receita — soma (R$)',
       ].forEach(function (h) {
         hr.appendChild(el('th', null, h));
@@ -491,6 +506,9 @@
       thead.appendChild(hr);
       table.appendChild(thead);
       const tbody = el('tbody');
+
+      let sumTotalProducaoCampos = 0;
+      let sumTotalReceitaCampos = 0;
 
       const agg = {
         PORT: {
@@ -557,6 +575,7 @@
         tr.appendChild(tdProd);
 
         tr.appendChild(moneyFieldTd('Meta produção (R$)', 'metaVol', metaVol));
+        tr.appendChild(pctReceitaSobreProducao('% meta (rent./prod.)', metaRent, metaVol));
         tr.appendChild(moneyFieldTd('Meta rentabilidade (R$)', 'metaRent', metaRent));
 
         const tdBA = el('td', 'ui-producao-input-cell');
@@ -570,6 +589,7 @@
         wireProducaoMoneyInput(inBA);
         tdBA.appendChild(inBA);
         tr.appendChild(tdBA);
+        tr.appendChild(pctReceitaSobreProducao('% em análise (rec./prod.)', row.analise, row.producaoBrutaAnalise));
 
         const tdAL = el('td', 'ui-producao-input-cell');
         tdAL.setAttribute('data-label', 'Receita em análise (R$)');
@@ -596,6 +616,9 @@
         wireProducaoMoneyInput(inBAV);
         tdBAV.appendChild(inBAV);
         tr.appendChild(tdBAV);
+        tr.appendChild(
+          pctReceitaSobreProducao('% averbada (rec./prod.)', row.rentabilidadeAverbada, row.producaoBrutaAverbada),
+        );
 
         const tdPg = el('td', 'ui-producao-input-cell');
         tdPg.setAttribute('data-label', 'Receita averbada / pago (R$)');
@@ -624,6 +647,7 @@
         wireProducaoMoneyInput(inTB);
         tdTB.appendChild(inTB);
         tr.appendChild(tdTB);
+        tr.appendChild(pctReceitaSobreProducao('% total (rec./prod.)', row.total, row.producaoBruta));
 
         tr.appendChild(moneyCellRead('Total receita — soma (R$)', row.total));
 
@@ -633,6 +657,10 @@
         if (!inAL.value && row.analise > 0) {
           inAL.value = formatMoneyBrInput(Math.round(row.analise * 100) / 100);
         }
+
+        sumTotalProducaoCampos += parseMoneyBR(inTB.value);
+        const rtTot = Number(row.total);
+        sumTotalReceitaCampos += Number.isFinite(rtTot) ? rtTot : 0;
 
         tr.dataset.vendedoraId = v.id;
         tbody.appendChild(tr);
@@ -652,28 +680,47 @@
       tdTotLab.colSpan = 3;
       fr.appendChild(tdTotLab);
       fr.appendChild(moneyCellRead('Σ Meta produção', fMetaVol));
+      fr.appendChild(pctReceitaSobreProducao('Σ % meta', fMetaRent, fMetaVol));
       fr.appendChild(moneyCellRead('Σ Meta rentabilidade', fMetaRent));
       fr.appendChild(moneyCellRead('Σ Produção análise', fVolAn));
+      fr.appendChild(pctReceitaSobreProducao('Σ % análise', fRentAn, fVolAn));
       fr.appendChild(moneyCellRead('Σ Receita análise', fRentAn));
       fr.appendChild(moneyCellRead('Σ Produção averbada', fVolAv));
+      fr.appendChild(pctReceitaSobreProducao('Σ % averbada', fRentAv, fVolAv));
       fr.appendChild(moneyCellRead('Σ Receita averbada', fRentAv));
-      fr.appendChild(moneyCellRead('Σ Total produção', fVolTot));
-      fr.appendChild(moneyCellRead('Σ Total receita', fRentTot));
+      fr.appendChild(moneyCellRead('Σ Total produção', sumTotalProducaoCampos));
+      fr.appendChild(pctReceitaSobreProducao('Σ % total', sumTotalReceitaCampos, sumTotalProducaoCampos));
+      fr.appendChild(moneyCellRead('Σ Total receita', sumTotalReceitaCampos));
       tfoot.appendChild(fr);
       table.appendChild(tbody);
       table.appendChild(tfoot);
       tw.appendChild(table);
 
+      const totBar = el('div', 'ui-producao-totais-dupla');
+      const it1 = el('span', 'ui-producao-totais-dupla__item');
+      it1.appendChild(el('span', 'ui-producao-totais-dupla__lbl', 'Σ Total produção '));
+      it1.appendChild(el('span', 'ui-mono', formatBRL(sumTotalProducaoCampos)));
+      const it2 = el('span', 'ui-producao-totais-dupla__item');
+      it2.appendChild(el('span', 'ui-producao-totais-dupla__lbl', 'Σ Total receita '));
+      it2.appendChild(el('span', 'ui-mono', formatBRL(sumTotalReceitaCampos)));
+      totBar.appendChild(it1);
+      totBar.appendChild(it2);
+      tw.appendChild(totBar);
+
       function subLinhaFases(titulo, a) {
         const tr = el('tr');
         tr.appendChild(el('td', 'ui-mono', titulo));
         tr.appendChild(moneyCellRead('META pr.', a.metaVol));
+        tr.appendChild(pctReceitaSobreProducao('% meta', a.metaRent, a.metaVol));
         tr.appendChild(moneyCellRead('META rent.', a.metaRent));
         tr.appendChild(moneyCellRead('Pr. análise', a.volAn));
+        tr.appendChild(pctReceitaSobreProducao('% análise', a.rentAn, a.volAn));
         tr.appendChild(moneyCellRead('Rec. análise', a.rentAn));
         tr.appendChild(moneyCellRead('Pr. averb.', a.volAv));
+        tr.appendChild(pctReceitaSobreProducao('% averb.', a.rentAv, a.volAv));
         tr.appendChild(moneyCellRead('Rec. averb.', a.rentAv));
         tr.appendChild(moneyCellRead('Tot. pr.', a.volTot));
+        tr.appendChild(pctReceitaSobreProducao('% total', a.rentTot, a.volTot));
         tr.appendChild(moneyCellRead('Tot. rec.', a.rentTot));
         return tr;
       }
@@ -684,12 +731,16 @@
       [
         '',
         'META pr.',
+        '%',
         'META rent.',
         'Pr. análise',
+        '%',
         'Rec. análise',
         'Pr. averb.',
+        '%',
         'Rec. averb.',
         'Tot. pr.',
+        '%',
         'Tot. rec.',
       ].forEach(function (h) {
         hr2.appendChild(el('th', null, h));

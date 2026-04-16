@@ -1438,6 +1438,10 @@ pre,
   --producao-sticky-w1: 16rem;
   --producao-sticky-w2: 4.25rem;
   --producao-sticky-w3: 7.75rem;
+  /* Identificação: fundos 100% opacos (sticky não pode usar rgba translúcido — “vaza” o scroll) */
+  --producao-ident-solid-body: #1c222e;
+  --producao-ident-solid-head: #2a3140;
+  --producao-ident-solid-phase: #363f52;
 }
 
 /* Bloco Identificação fixo ao rolar horizontalmente */
@@ -1484,7 +1488,7 @@ pre,
 .ui-table--producao-planilha tbody tr > td:nth-child(2) {
   position: sticky;
   left: var(--producao-sticky-w1);
-  z-index: 2;
+  z-index: 3;
   min-width: var(--producao-sticky-w2);
   box-shadow: 6px 0 12px rgba(0, 0, 0, 0.2);
 }
@@ -1492,7 +1496,7 @@ pre,
 .ui-table--producao-planilha tbody tr > td:nth-child(3) {
   position: sticky;
   left: calc(var(--producao-sticky-w1) + var(--producao-sticky-w2));
-  z-index: 2;
+  z-index: 4;
   min-width: var(--producao-sticky-w3);
   box-shadow: 8px 0 16px rgba(0, 0, 0, 0.32);
 }
@@ -1500,7 +1504,7 @@ pre,
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(1) {
   position: sticky;
   left: 0;
-  z-index: 3;
+  z-index: 5;
   min-width: calc(var(--producao-sticky-w1) + var(--producao-sticky-w2) + var(--producao-sticky-w3));
   box-shadow: 6px 0 14px rgba(0, 0, 0, 0.35);
 }
@@ -1641,7 +1645,7 @@ pre,
 }
 
 .ui-table--producao-planilha .ui-producao-phase-head--ident {
-  background: rgba(148, 163, 184, 0.35);
+  background: var(--producao-ident-solid-phase);
   color: var(--text);
 }
 
@@ -1671,7 +1675,7 @@ pre,
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(1),
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(2),
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(3) {
-  background: rgba(148, 163, 184, 0.22);
+  background: var(--producao-ident-solid-head);
   color: var(--text2);
 }
 
@@ -1706,7 +1710,7 @@ pre,
 .ui-table--producao-planilha tbody tr > td:nth-child(1),
 .ui-table--producao-planilha tbody tr > td:nth-child(2),
 .ui-table--producao-planilha tbody tr > td:nth-child(3) {
-  background: rgba(148, 163, 184, 0.1);
+  background: var(--producao-ident-solid-body);
 }
 
 .ui-table--producao-planilha tbody tr > td:nth-child(4),
@@ -1740,7 +1744,7 @@ pre,
 
 /* Rodapé TOTAL GERAL: 1ª célula = ident (colspan 3); 2–4 objetivo; 5–7 análise; 8–10 averb.; 11–13 total */
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(1) {
-  background: rgba(148, 163, 184, 0.24);
+  background: var(--producao-ident-solid-head);
 }
 
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(2),

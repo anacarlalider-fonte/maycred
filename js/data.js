@@ -173,6 +173,7 @@
    * @property {number} [brutoAnalise] - bruto em análise (R$)
    * @property {number} [analiseLiquido] - rentabilidade em análise (R$); se omitido, usa brutoAnalise × taxa do produto
    * @property {number} [pago] - rentabilidade paga (R$)
+   * @property {number} [brutoAverbado] - produção bruta na fase averbada (R$); se omitido, usa total bruto − bruto em análise
    * @property {number} [totalBruto] - total bruto do mês (R$); se >0, usado como produção bruta; senão usa brutoAnalise
    * @property {number} [prodMesAnterior] - referência “prod. mês anterior” (R$), só exibição / controle
    */
@@ -291,11 +292,12 @@
       v_diana: 120000,
     };
     return Object.keys(map).map(function (id) {
+      const v = map[id];
       return normalizeMetaRow({
         vendedoraId: id,
         mes,
-        metaProducao: map[id],
-        metaProducaoTotal: 0,
+        metaProducao: v,
+        metaProducaoTotal: v,
         metaAverbacao: 0,
       });
     });
@@ -660,6 +662,7 @@
       brutoAnalise: num('brutoAnalise'),
       analiseLiquido: num('analiseLiquido'),
       pago: num('pago'),
+      brutoAverbado: num('brutoAverbado'),
       totalBruto: num('totalBruto'),
       prodMesAnterior: num('prodMesAnterior'),
     };

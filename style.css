@@ -1212,8 +1212,8 @@ pre,
 }
 
 .ui-table--producao-resumo-por-produto-inner {
-  min-width: 28rem;
-  max-width: 42rem;
+  min-width: 48rem;
+  max-width: 100%;
 }
 
 .ui-producao-total-geral td {
@@ -1247,7 +1247,7 @@ pre,
 
 .ui-table--producao-planilha {
   width: 100%;
-  min-width: 44rem;
+  min-width: 64rem;
   table-layout: auto;
 }
 
@@ -1285,6 +1285,12 @@ pre,
   max-width: 7.5rem;
   min-width: 5rem;
   font-size: 0.8125rem;
+}
+
+.ui-table--producao-planilha .ui-input--money-br {
+  min-width: 6.5rem;
+  max-width: 10rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .ui-table--producao-planilha .ui-producao-input-cell {

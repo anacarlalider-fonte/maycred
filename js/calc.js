@@ -31,7 +31,21 @@
   function parseMetaTargets(meta) {
     const m = meta && typeof meta === 'object' ? meta : {};
     const rent = Number(m.metaRentabilidade != null && m.metaRentabilidade !== '' ? m.metaRentabilidade : m.metaProducao);
-    const vol = Number(m.metaProducaoTotal);
+    let vol = Number(m.metaProducaoTotal);
+    if (!Number.isFinite(vol) || vol < 0) vol = 0;
+    /**
+     * Presets antigos: meta só em `metaProducao`, `metaProducaoTotal` = 0.
+     * Só reaproveita como volume se a meta de rentabilidade for a mesma cifra (evita misturar meta rent. com volume).
+     */
+    if (vol === 0 && m.metaProducao != null && m.metaProducao !== '') {
+      const leg = Number(m.metaProducao);
+      const rentN = Number(
+        m.metaRentabilidade != null && m.metaRentabilidade !== '' ? m.metaRentabilidade : m.metaProducao,
+      );
+      if (Number.isFinite(leg) && leg > 0 && (!Number.isFinite(rentN) || Math.abs(rentN - leg) < 1e-6)) {
+        vol = leg;
+      }
+    }
     const averb = Number(m.metaAverbacao);
     const metaRent = Number.isFinite(rent) && rent >= 0 ? rent : 0;
     const metaVol = Number.isFinite(vol) && vol >= 0 ? vol : 0;
@@ -116,7 +130,10 @@
       const tbUse = tb > 0 ? tb : ba;
       producaoBruta = tbUse;
       producaoBrutaAnalise = ba > 0 ? ba : 0;
-      producaoBrutaAverbada = Math.max(0, tbUse - producaoBrutaAnalise);
+      const bavIn = manual.brutoAverbado;
+      const bav =
+        typeof bavIn === 'number' && !Number.isNaN(bavIn) && bavIn >= 0 ? bavIn : NaN;
+      producaoBrutaAverbada = Number.isFinite(bav) ? bav : Math.max(0, tbUse - producaoBrutaAnalise);
       const alRaw = manual.analiseLiquido;
       if (typeof alRaw === 'number' && !Number.isNaN(alRaw)) {
         analise = alRaw;

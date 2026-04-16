@@ -367,7 +367,7 @@
       el(
         'p',
         'ui-muted',
-        'É a mesma produção em sequência: primeiro o que está em análise (bruto e quanto entra de rentabilidade), depois o que já averbou (pago), e o total bruto do mês. O bloco “Objetivo” é só a meta de volume. Salve para gravar; se “Rent. na análise” estiver vazio, o sistema usa a taxa PORT/ENTRANTE.',
+        'Em cada fase há duas colunas: valor produzido (R$) e receita / rentabilidade (R$). Objetivo = meta de produção e meta de rentabilidade. Total receita é a soma das receitas das fases (análise + averbada). Salve para gravar; se receita em análise estiver vazia, usa a taxa PORT/ENTRANTE. Produção averbada vazia = total produção menos o que está em análise.',
       ),
     );
 
@@ -402,8 +402,30 @@
       inp.type = 'text';
       inp.inputMode = 'decimal';
       inp.setAttribute('autocomplete', 'off');
-      inp.placeholder = '0';
+      inp.placeholder = '0,00';
       return inp;
+    }
+
+    /** Exibe valor em pt-BR (milhar e centavos), sem prefixo R$, para digitação manual. */
+    function formatMoneyBrInput(n) {
+      const x = Number(n);
+      if (!Number.isFinite(x)) return '';
+      return x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function wireProducaoMoneyInput(inp) {
+      inp.classList.add('ui-input--money-br');
+      inp.addEventListener('blur', function () {
+        const t = String(inp.value || '').trim();
+        if (!t) {
+          inp.value = '';
+          return;
+        }
+        inp.value = formatMoneyBrInput(parseMoneyBR(inp.value));
+      });
+      inp.addEventListener('focus', function () {
+        if (String(inp.value || '').trim()) inp.select();
+      });
     }
 
     /** @param {string} label @param {string} field @param {number} initialNum */
@@ -413,9 +435,9 @@
       const inp = moneyInput('');
       inp.dataset.field = field;
       const n = Number(initialNum);
-      if (Number.isFinite(n) && n !== 0) inp.value = String(Math.round(n * 100) / 100);
-      else if (n === 0) inp.value = '0';
+      if (Number.isFinite(n)) inp.value = formatMoneyBrInput(n);
       else inp.value = '';
+      wireProducaoMoneyInput(inp);
       td.appendChild(inp);
       return td;
     }
@@ -445,10 +467,10 @@
         return th;
       }
       trPhase.appendChild(phaseTh('', 3, 'Identificação'));
-      trPhase.appendChild(phaseTh('', 1, 'Objetivo'));
-      trPhase.appendChild(phaseTh('ui-producao-phase-head--analise', 2, 'Fase em análise'));
-      trPhase.appendChild(phaseTh('ui-producao-phase-head--averb', 1, 'Fase averbada'));
-      trPhase.appendChild(phaseTh('', 1, 'Total da produção'));
+      trPhase.appendChild(phaseTh('', 2, 'Objetivo'));
+      trPhase.appendChild(phaseTh('ui-producao-phase-head--analise', 2, 'Em análise'));
+      trPhase.appendChild(phaseTh('ui-producao-phase-head--averb', 2, 'Averbada / pago'));
+      trPhase.appendChild(phaseTh('', 2, 'Total (soma)'));
       thead.appendChild(trPhase);
       const hr = el('tr');
       [
@@ -456,10 +478,13 @@
         'DISC',
         'Produto',
         'Meta produção (R$)',
-        'Bruto em análise (R$)',
-        'Rent. na análise (R$)',
-        'Pago — entra (R$)',
-        'Total bruto (R$)',
+        'Meta rentabilidade (R$)',
+        'Produção em análise (R$)',
+        'Receita em análise (R$)',
+        'Produção averbada (R$)',
+        'Receita averbada / pago (R$)',
+        'Total produção (R$)',
+        'Total receita — soma (R$)',
       ].forEach(function (h) {
         hr.appendChild(el('th', null, h));
       });
@@ -468,8 +493,26 @@
       const tbody = el('tbody');
 
       const agg = {
-        PORT: { metaVol: 0, bruto: 0, entraAnalise: 0, entraAverb: 0 },
-        ENTRANTE: { metaVol: 0, bruto: 0, entraAnalise: 0, entraAverb: 0 },
+        PORT: {
+          metaVol: 0,
+          metaRent: 0,
+          volAn: 0,
+          rentAn: 0,
+          volAv: 0,
+          rentAv: 0,
+          volTot: 0,
+          rentTot: 0,
+        },
+        ENTRANTE: {
+          metaVol: 0,
+          metaRent: 0,
+          volAn: 0,
+          rentAn: 0,
+          volAv: 0,
+          rentAv: 0,
+          volTot: 0,
+          rentTot: 0,
+        },
       };
 
       order.forEach(function (R) {
@@ -477,13 +520,18 @@
         const row = R.row;
         const mt = global.MaycredCalc.parseMetaTargets(R.meta);
         const metaVol = mt.metaVol;
+        const metaRent = mt.metaRent;
         const man = pm[v.id] && typeof pm[v.id] === 'object' ? pm[v.id] : null;
 
         const g = v.produto === 'ENTRANTE' ? agg.ENTRANTE : agg.PORT;
         g.metaVol += metaVol;
-        g.bruto += row.producaoBruta;
-        g.entraAnalise += row.analise;
-        g.entraAverb += row.pago;
+        g.metaRent += metaRent;
+        g.volAn += row.producaoBrutaAnalise;
+        g.rentAn += row.analise;
+        g.volAv += row.producaoBrutaAverbada;
+        g.rentAv += row.rentabilidadeAverbada;
+        g.volTot += row.producaoBruta;
+        g.rentTot += row.total;
 
         const tr = el('tr');
 
@@ -509,71 +557,108 @@
         tr.appendChild(tdProd);
 
         tr.appendChild(moneyFieldTd('Meta produção (R$)', 'metaVol', metaVol));
+        tr.appendChild(moneyFieldTd('Meta rentabilidade (R$)', 'metaRent', metaRent));
 
         const tdBA = el('td', 'ui-producao-input-cell');
-        tdBA.setAttribute('data-label', 'Bruto em análise (R$)');
+        tdBA.setAttribute('data-label', 'Produção em análise (R$)');
         const inBA = moneyInput('');
         inBA.dataset.field = 'brutoAnalise';
         inBA.value =
-          man && man.brutoAnalise != null && !Number.isNaN(Number(man.brutoAnalise)) ? String(man.brutoAnalise) : '';
+          man && man.brutoAnalise != null && !Number.isNaN(Number(man.brutoAnalise))
+            ? formatMoneyBrInput(Number(man.brutoAnalise))
+            : '';
+        wireProducaoMoneyInput(inBA);
         tdBA.appendChild(inBA);
         tr.appendChild(tdBA);
 
         const tdAL = el('td', 'ui-producao-input-cell');
-        tdAL.setAttribute('data-label', 'Rent. na análise (R$)');
+        tdAL.setAttribute('data-label', 'Receita em análise (R$)');
         const inAL = moneyInput('');
         inAL.dataset.field = 'analiseLiquido';
         inAL.value =
           man && man.analiseLiquido != null && !Number.isNaN(Number(man.analiseLiquido))
-            ? String(man.analiseLiquido)
+            ? formatMoneyBrInput(Number(man.analiseLiquido))
             : '';
+        wireProducaoMoneyInput(inAL);
         tdAL.appendChild(inAL);
         tr.appendChild(tdAL);
 
+        const tdBAV = el('td', 'ui-producao-input-cell');
+        tdBAV.setAttribute('data-label', 'Produção averbada (R$)');
+        const inBAV = moneyInput('');
+        inBAV.dataset.field = 'brutoAverbado';
+        inBAV.value =
+          man && man.brutoAverbado != null && !Number.isNaN(Number(man.brutoAverbado))
+            ? formatMoneyBrInput(Number(man.brutoAverbado))
+            : row.producaoBrutaAverbada > 0
+              ? formatMoneyBrInput(Math.round(row.producaoBrutaAverbada * 100) / 100)
+              : '';
+        wireProducaoMoneyInput(inBAV);
+        tdBAV.appendChild(inBAV);
+        tr.appendChild(tdBAV);
+
         const tdPg = el('td', 'ui-producao-input-cell');
-        tdPg.setAttribute('data-label', 'Pago — entra (R$)');
+        tdPg.setAttribute('data-label', 'Receita averbada / pago (R$)');
         const inPg = moneyInput('');
         inPg.dataset.field = 'pago';
         inPg.value =
           man && man.pago != null && !Number.isNaN(Number(man.pago))
-            ? String(man.pago)
+            ? formatMoneyBrInput(Number(man.pago))
             : row.pago > 0
-              ? String(Math.round(row.pago * 100) / 100)
+              ? formatMoneyBrInput(Math.round(row.pago * 100) / 100)
               : '';
+        wireProducaoMoneyInput(inPg);
         tdPg.appendChild(inPg);
         tr.appendChild(tdPg);
 
         const tdTB = el('td', 'ui-producao-input-cell');
-        tdTB.setAttribute('data-label', 'Total bruto (R$)');
+        tdTB.setAttribute('data-label', 'Total produção (R$)');
         const inTB = moneyInput('');
         inTB.dataset.field = 'totalBruto';
         inTB.value =
           man && man.totalBruto != null && !Number.isNaN(Number(man.totalBruto))
-            ? String(man.totalBruto)
+            ? formatMoneyBrInput(Number(man.totalBruto))
             : row.producaoBruta > 0
-              ? String(Math.round(row.producaoBruta * 100) / 100)
+              ? formatMoneyBrInput(Math.round(row.producaoBruta * 100) / 100)
               : '';
+        wireProducaoMoneyInput(inTB);
         tdTB.appendChild(inTB);
         tr.appendChild(tdTB);
 
-        if (!inBA.value && row.producaoBruta > 0) inBA.value = String(Math.round(row.producaoBruta * 100) / 100);
-        if (!inAL.value && row.analise > 0) inAL.value = String(Math.round(row.analise * 100) / 100);
+        tr.appendChild(moneyCellRead('Total receita — soma (R$)', row.total));
+
+        if (!inBA.value && row.producaoBruta > 0) {
+          inBA.value = formatMoneyBrInput(Math.round(row.producaoBruta * 100) / 100);
+        }
+        if (!inAL.value && row.analise > 0) {
+          inAL.value = formatMoneyBrInput(Math.round(row.analise * 100) / 100);
+        }
 
         tr.dataset.vendedoraId = v.id;
         tbody.appendChild(tr);
       });
 
-      const team = snap.team;
+      const fMetaVol = agg.PORT.metaVol + agg.ENTRANTE.metaVol;
+      const fMetaRent = agg.PORT.metaRent + agg.ENTRANTE.metaRent;
+      const fVolAn = agg.PORT.volAn + agg.ENTRANTE.volAn;
+      const fRentAn = agg.PORT.rentAn + agg.ENTRANTE.rentAn;
+      const fVolAv = agg.PORT.volAv + agg.ENTRANTE.volAv;
+      const fRentAv = agg.PORT.rentAv + agg.ENTRANTE.rentAv;
+      const fVolTot = agg.PORT.volTot + agg.ENTRANTE.volTot;
+      const fRentTot = agg.PORT.rentTot + agg.ENTRANTE.rentTot;
       const tfoot = el('tfoot');
       const fr = el('tr', 'ui-producao-total-geral');
       const tdTotLab = el('td', 'ui-producao-total-label', 'TOTAL GERAL');
       tdTotLab.colSpan = 3;
       fr.appendChild(tdTotLab);
-      fr.appendChild(moneyCellRead('Σ Meta produção', team.metaProducaoTotalSoma));
-      fr.appendChild(moneyCellRead('Σ Bruto análise', team.producaoBrutaAnaliseTotal));
-      fr.appendChild(moneyCellRead('Σ Rent. análise', team.analiseTotal));
-      fr.appendChild(moneyCellRead('Σ Pago (entra)', team.pagoTotal));
-      fr.appendChild(moneyCellRead('Σ Total bruto', team.producaoTotal));
+      fr.appendChild(moneyCellRead('Σ Meta produção', fMetaVol));
+      fr.appendChild(moneyCellRead('Σ Meta rentabilidade', fMetaRent));
+      fr.appendChild(moneyCellRead('Σ Produção análise', fVolAn));
+      fr.appendChild(moneyCellRead('Σ Receita análise', fRentAn));
+      fr.appendChild(moneyCellRead('Σ Produção averbada', fVolAv));
+      fr.appendChild(moneyCellRead('Σ Receita averbada', fRentAv));
+      fr.appendChild(moneyCellRead('Σ Total produção', fVolTot));
+      fr.appendChild(moneyCellRead('Σ Total receita', fRentTot));
       tfoot.appendChild(fr);
       table.appendChild(tbody);
       table.appendChild(tfoot);
@@ -582,17 +667,31 @@
       function subLinhaFases(titulo, a) {
         const tr = el('tr');
         tr.appendChild(el('td', 'ui-mono', titulo));
-        tr.appendChild(moneyCellRead('META prod.', a.metaVol));
-        tr.appendChild(moneyCellRead('Bruto', a.bruto));
-        tr.appendChild(moneyCellRead('Entra (análise)', a.entraAnalise));
-        tr.appendChild(moneyCellRead('Entra (averb.)', a.entraAverb));
+        tr.appendChild(moneyCellRead('META pr.', a.metaVol));
+        tr.appendChild(moneyCellRead('META rent.', a.metaRent));
+        tr.appendChild(moneyCellRead('Pr. análise', a.volAn));
+        tr.appendChild(moneyCellRead('Rec. análise', a.rentAn));
+        tr.appendChild(moneyCellRead('Pr. averb.', a.volAv));
+        tr.appendChild(moneyCellRead('Rec. averb.', a.rentAv));
+        tr.appendChild(moneyCellRead('Tot. pr.', a.volTot));
+        tr.appendChild(moneyCellRead('Tot. rec.', a.rentTot));
         return tr;
       }
 
       const t2 = el('table', 'ui-table ui-table--producao-resumo-por-produto-inner');
       const th2 = el('thead');
       const hr2 = el('tr');
-      ['', 'META prod.', 'Bruto', 'Entra (análise)', 'Entra (averb.)'].forEach(function (h) {
+      [
+        '',
+        'META pr.',
+        'META rent.',
+        'Pr. análise',
+        'Rec. análise',
+        'Pr. averb.',
+        'Rec. averb.',
+        'Tot. pr.',
+        'Tot. rec.',
+      ].forEach(function (h) {
         hr2.appendChild(el('th', null, h));
       });
       th2.appendChild(hr2);
@@ -602,9 +701,13 @@
       tb2.appendChild(subLinhaFases('ENTRANTE', agg.ENTRANTE));
       const totAgg = {
         metaVol: agg.PORT.metaVol + agg.ENTRANTE.metaVol,
-        bruto: agg.PORT.bruto + agg.ENTRANTE.bruto,
-        entraAnalise: agg.PORT.entraAnalise + agg.ENTRANTE.entraAnalise,
-        entraAverb: agg.PORT.entraAverb + agg.ENTRANTE.entraAverb,
+        metaRent: agg.PORT.metaRent + agg.ENTRANTE.metaRent,
+        volAn: agg.PORT.volAn + agg.ENTRANTE.volAn,
+        rentAn: agg.PORT.rentAn + agg.ENTRANTE.rentAn,
+        volAv: agg.PORT.volAv + agg.ENTRANTE.volAv,
+        rentAv: agg.PORT.rentAv + agg.ENTRANTE.rentAv,
+        volTot: agg.PORT.volTot + agg.ENTRANTE.volTot,
+        rentTot: agg.PORT.rentTot + agg.ENTRANTE.rentTot,
       };
       const trT = subLinhaFases('TOTAL', totAgg);
       trT.className = 'ui-producao-total-geral';
@@ -628,12 +731,20 @@
             return trEl.querySelector('input[data-field="' + field + '"]');
           }
           const inAL = q('analiseLiquido');
-          global.MaycredData.upsertMeta({
+          const inBAV = q('brutoAverbado');
+          /** @type {{ vendedoraId: string, mes: string, metaProducaoTotal: number, metaRentabilidade?: number }} */
+          const upMeta = {
             vendedoraId: vid,
             mes: mes2,
             metaProducaoTotal: parseMoneyBR(q('metaVol') && q('metaVol').value),
-          });
-          map[vid] = {
+          };
+          const inMR = q('metaRent');
+          if (inMR && String(inMR.value).trim() !== '') {
+            upMeta.metaRentabilidade = parseMoneyBR(inMR.value);
+          }
+          global.MaycredData.upsertMeta(upMeta);
+          /** @type {Record<string, unknown>} */
+          const rowMap = {
             ativo: true,
             brutoAnalise: parseMoneyBR(q('brutoAnalise') && q('brutoAnalise').value),
             analiseLiquido:
@@ -641,6 +752,10 @@
             pago: parseMoneyBR(q('pago') && q('pago').value),
             totalBruto: parseMoneyBR(q('totalBruto') && q('totalBruto').value),
           };
+          if (inBAV && String(inBAV.value).trim() !== '') {
+            rowMap.brutoAverbado = parseMoneyBR(inBAV.value);
+          }
+          map[vid] = rowMap;
         });
         global.MaycredData.setProducaoManualMes(mes2, map);
         toast('Planilha e metas salvas. O dashboard usa estes valores.', 'success');

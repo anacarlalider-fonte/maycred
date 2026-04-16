@@ -103,7 +103,7 @@
 
   /**
    * ADM ou Líder: mesmo painel lateral do gestor, com rotas filtradas por permissão.
-   * Venda: área da vendedora (desempenho, pipeline, clientes, propostas, simulador).
+   * Venda: área da vendedora (desempenho, pipeline, clientes, propostas).
    */
   function hasPainelGestor() {
     if (isGestor()) return true;

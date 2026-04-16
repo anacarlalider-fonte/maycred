@@ -1,5 +1,5 @@
 /**
- * Área da vendedora (perfil Venda): desempenho, pipeline, clientes, propostas, simulador.
+ * Área da vendedora (perfil Venda): desempenho, pipeline, clientes, propostas.
  * Sem exibir comissão/rentabilidade em R$ nem meta em R$. Isolamento por vendedoraId na gravação.
  */
 (function (global) {
@@ -1781,102 +1781,6 @@
     paint();
   }
 
-  function renderSimulador(container) {
-    const vid = global.MaycredAuth.getVendedoraIdOperacional();
-    if (!vid) {
-      container.appendChild(el('p', 'ui-muted', 'Sessão inválida.'));
-      return;
-    }
-    const st = global.MaycredData.getState();
-    const self = st.vendedoras.find(function (x) {
-      return x.id === vid;
-    });
-    if (!self) {
-      container.appendChild(el('p', 'ui-muted', 'Cadastro não encontrado.'));
-      return;
-    }
-    const mes = st.config.mesAtual;
-    const meta =
-      st.metas.find(function (m) {
-        return m.vendedoraId === vid && m.mes === mes;
-      }) || null;
-    const metaRent = global.MaycredCalc.parseMetaTargets(meta).metaRent;
-    const lancs = st.lancamentos.filter(function (l) {
-      return l.vendedoraId === vid && l.mes === mes;
-    });
-    const row = global.MaycredCalc.calcVendedora(self, meta, mes, lancs, st);
-
-    const wrap = el('div', 'ui-section ui-vend-mod');
-    wrap.appendChild(el('h2', 'ui-section__title', 'Simulador'));
-    wrap.appendChild(
-      el(
-        'p',
-        'ui-muted',
-        'Simule uma operação extra (como se já estivesse no pago). Apenas percentuais são mostrados — sem valores de meta ou comissão em reais.',
-      ),
-    );
-
-    const g = el('div', 'ui-form-grid ui-form-grid--2');
-    const fV = el('div', 'ui-field');
-    fV.appendChild(el('span', 'ui-field__label', 'Valor financiado simulado (R$)'));
-    const inV = el('input', 'ui-input');
-    inV.type = 'number';
-    inV.step = '0.01';
-    fV.appendChild(inV);
-    g.appendChild(fV);
-
-    const fT = el('div', 'ui-field');
-    fT.appendChild(el('span', 'ui-field__label', 'Tabela (define o peso na meta)'));
-    const selT = el('select', 'ui-select');
-    selT.appendChild(el('option', null, '— Escolha —'));
-    selT.options[0].value = '';
-    (st.tabelas || []).forEach(function (t) {
-      if (t.ativo === false) return;
-      const conv = t.convenio || global.MaycredData.formatConvenioTabela(t.nome, t.prazo);
-      const o = el('option', null, conv);
-      o.value = t.id;
-      selT.appendChild(o);
-    });
-    fT.appendChild(selT);
-    g.appendChild(fT);
-    wrap.appendChild(g);
-
-    const out = el('div', 'ui-vend-sim-out ui-config-block');
-    out.appendChild(el('p', 'ui-muted', 'Preencha e clique em Calcular.'));
-    wrap.appendChild(out);
-
-    const btn = el('button', 'ui-btn ui-btn--primary', 'Calcular');
-    btn.type = 'button';
-    btn.addEventListener('click', function () {
-      const vf = parseFloat(inV.value);
-      const tid = selT.value;
-      if (Number.isNaN(vf) || vf <= 0) {
-        toast('Informe o valor.', 'error');
-        return;
-      }
-      if (!tid) {
-        toast('Escolha uma tabela.', 'error');
-        return;
-      }
-      const tab = global.MaycredData.getTabelaById(tid);
-      if (!tab || tab.comissao == null) {
-        toast('Tabela inválida.', 'error');
-        return;
-      }
-      const sim = global.MaycredCalc.calcSimulacaoVendedoraPago(row, vf, tab.comissao, metaRent);
-      clear(out);
-      out.appendChild(el('p', 'ui-vend-sim-line', '% atual (pago): ' + sim.pctAtual + '%'));
-      out.appendChild(
-        el('p', 'ui-vend-sim-line', '% se esta operação entrasse no pago: ' + sim.pctComExtra + '%'),
-      );
-      out.appendChild(
-        el('p', 'ui-vend-sim-line', 'Falta para 100%: ' + sim.faltaPctPara100 + ' p.p.'),
-      );
-    });
-    wrap.appendChild(btn);
-    container.appendChild(wrap);
-  }
-
   function paint(container, tela) {
     const vid = global.MaycredAuth.getVendedoraIdOperacional && global.MaycredAuth.getVendedoraIdOperacional();
     if (!vid) {
@@ -1900,9 +1804,6 @@
       case 'vendPropostas':
         renderPropostas(container);
         break;
-      case 'vendSimulador':
-        renderSimulador(container);
-        break;
       case 'vendDesempenho':
       default:
         renderDesempenho(container);
@@ -1911,6 +1812,6 @@
 
   global.MaycredVendUI = {
     paint: paint,
-    TELAS: ['vendDesempenho', 'vendPipeline', 'vendClientes', 'vendPropostas', 'vendSimulador'],
+    TELAS: ['vendDesempenho', 'vendPipeline', 'vendClientes', 'vendPropostas'],
   };
 })(typeof window !== 'undefined' ? window : globalThis);

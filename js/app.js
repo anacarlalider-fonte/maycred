@@ -43,7 +43,6 @@
     ['vendPipeline', 'Pipeline'],
     ['vendClientes', 'Clientes'],
     ['vendPropostas', 'Propostas'],
-    ['vendSimulador', 'Simulador'],
   ];
 
   /** Mesmas chaves que MaycredVendUI — não depender só do objeto (fallback se cache antigo). */
@@ -52,10 +51,10 @@
     'vendPipeline',
     'vendClientes',
     'vendPropostas',
-    'vendSimulador',
   ];
 
   function navigateVendedora(tela) {
+    if (tela === 'vendSimulador') tela = 'vendDesempenho';
     safeDestroyCharts();
     const content = document.getElementById('app-content');
     if (!content || !MaycredAuth.isLoggedIn()) return;
@@ -82,6 +81,7 @@
   }
 
   function navigate(tela) {
+    if (tela === 'vendSimulador') tela = 'vendDesempenho';
     if (MaycredAuth.isVendedoraCampo()) {
       navigateVendedora(tela);
       return;
@@ -149,7 +149,6 @@
       case 'vendPipeline':
       case 'vendClientes':
       case 'vendPropostas':
-      case 'vendSimulador':
         if (MaycredAuth.hasPainelGestor()) {
           MaycredVendUI.paint(content, telaIr);
         }

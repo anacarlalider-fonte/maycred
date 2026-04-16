@@ -1134,12 +1134,13 @@ pre,
 }
 
 .ui-pipeline-modal--crm {
-  max-width: 34rem;
+  max-width: min(52rem, calc(100vw - 2rem));
+  width: min(52rem, calc(100vw - 2rem));
   padding: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  max-height: min(90vh, 720px);
+  max-height: min(92vh, 880px);
 }
 
 .ui-pipeline-modal--crm > .ui-pipeline-crm-hdr,
@@ -3374,6 +3375,12 @@ pre,
   border-radius: var(--radius);
   padding: 1.25rem;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+/* Modal do pipeline (CRM): mais largo que o genérico 400px (vem depois no cascade) */
+.ui-modal.ui-pipeline-modal--crm {
+  max-width: min(52rem, calc(100vw - 2rem));
+  width: min(52rem, calc(100vw - 2rem));
 }
 
 .ui-modal__title {

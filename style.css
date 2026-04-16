@@ -1428,29 +1428,30 @@ pre,
 
 .ui-table--producao-planilha {
   width: 100%;
-  min-width: 78rem;
+  min-width: 70rem;
   table-layout: auto;
   border-collapse: separate;
   /* Entre colunas; o “vão” escuro entre estágios usa também border-left (--producao-stage-gap) */
-  border-spacing: 10px 8px;
-  --producao-stage-gap: 10px;
-  /* Larguras aproximadas do bloco Identificação (sticky horizontal) */
-  --producao-sticky-w1: 16rem;
-  --producao-sticky-w2: 4.25rem;
-  --producao-sticky-w3: 7.75rem;
-  /* Identificação: fundos 100% opacos (sticky não pode usar rgba translúcido — “vaza” o scroll) */
+  border-spacing: 7px 5px;
+  --producao-stage-gap: 8px;
+  /* Bloco Time (sticky): colunas mais estreitas = menos vão entre Vendedora / DISC / Produto */
+  --producao-sticky-w1: 11.75rem;
+  --producao-sticky-w2: 2.9rem;
+  --producao-sticky-w3: 5.35rem;
+  /* Time (1ª fase): fundos 100% opacos no sticky (sem rgba translúcido) */
   --producao-ident-solid-body: #1c222e;
   --producao-ident-solid-head: #2a3140;
   --producao-ident-solid-phase: #363f52;
 }
 
-/* Bloco Identificação fixo ao rolar horizontalmente */
+/* Bloco Time (Vendedora / DISC / Produto) fixo ao rolar horizontalmente */
 .ui-table--producao-planilha thead .ui-producao-head-phases th:first-child {
   position: sticky;
   left: 0;
   z-index: 6;
   min-width: calc(var(--producao-sticky-w1) + var(--producao-sticky-w2) + var(--producao-sticky-w3));
   box-shadow: 6px 0 14px rgba(0, 0, 0, 0.35);
+  padding: 0.38rem 0.35rem;
 }
 
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(1) {
@@ -1677,6 +1678,11 @@ pre,
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(3) {
   background: var(--producao-ident-solid-head);
   color: var(--text2);
+  padding: 0.4rem 0.35rem;
+}
+
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(2) {
+  text-align: center;
 }
 
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(4),
@@ -1711,6 +1717,26 @@ pre,
 .ui-table--producao-planilha tbody tr > td:nth-child(2),
 .ui-table--producao-planilha tbody tr > td:nth-child(3) {
   background: var(--producao-ident-solid-body);
+  padding: 0.45rem 0.35rem;
+}
+
+.ui-table--producao-planilha tbody tr > td:nth-child(2),
+.ui-table--producao-planilha tbody tr > td:nth-child(3) {
+  text-align: center;
+}
+
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(3) {
+  text-align: center;
+}
+
+.ui-table--producao-planilha .ui-vend-cell {
+  gap: 0.45rem;
+}
+
+.ui-table--producao-planilha tbody tr > td:nth-child(1) .ui-avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 0.62rem;
 }
 
 .ui-table--producao-planilha tbody tr > td:nth-child(4),
@@ -1745,6 +1771,7 @@ pre,
 /* Rodapé TOTAL GERAL: 1ª célula = ident (colspan 3); 2–4 objetivo; 5–7 análise; 8–10 averb.; 11–13 total */
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(1) {
   background: var(--producao-ident-solid-head);
+  padding: 0.45rem 0.4rem;
 }
 
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(2),

@@ -469,7 +469,7 @@
         th.textContent = text;
         return th;
       }
-      trPhase.appendChild(phaseTh('ui-producao-phase-head--ident', 3, 'Identificação'));
+      trPhase.appendChild(phaseTh('ui-producao-phase-head--ident', 3, 'Time'));
       trPhase.appendChild(phaseTh('ui-producao-phase-head--objetivo', 3, 'Objetivo'));
       trPhase.appendChild(phaseTh('ui-producao-phase-head--analise', 3, 'Em análise'));
       trPhase.appendChild(phaseTh('ui-producao-phase-head--averb', 3, 'Averbada / pago'));

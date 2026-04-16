@@ -1468,7 +1468,7 @@
     if (!embedded) container.appendChild(root);
   }
 
-  /** Metas de produção (volume R$) e rentabilidade (comissão R$) por vendedora no mês ativo. */
+  /** Metas de averbação (R$), rentabilidade (R$) e taxa alvo por vendedora no mês ativo. */
   function renderMetasMesGestor(container) {
     clear(container);
     const block = el('div', 'ui-config-block');
@@ -1477,7 +1477,7 @@
       el(
         'p',
         'ui-muted',
-        'Mês no topo. Meta produção: alvo em R$ de volume financiado (total no mês). Meta averbação: alvo só da parte averbada (opcional; 0 = não exibe % meta averbação isolada). Meta rentabilidade: alvo em R$ de comissão que a empresa recebe (propostas com tabela e %). Colunas “/ dia útil rest.” usam o calendário de dias úteis do produto da vendedora (Novo ou Portabilidade) em Configurações → Dias úteis.',
+        'Mês ativo no cabeçalho do app. Meta averbação: volume financiado averbado alvo. Meta rentabilidade: comissão alvo no mês. A taxa é meta rentabilidade ÷ meta averbação (mesma ideia do % averbado na planilha de Produção). A meta de produção total (volume geral) não é editada aqui — o valor gravado anteriormente permanece ao salvar.',
       ),
     );
     const metasCfgHost = el('div');
@@ -1489,15 +1489,15 @@
       const tbl = el('table', 'ui-table ui-table--responsive ui-table--metas-dual');
       const thead = el('thead');
       const hr = el('tr');
+      const thTx = el('th', null, 'Média de comissão (tx)');
+      thTx.title = 'Meta rentabilidade ÷ meta averbação — taxa alvo de comissão sobre o volume averbado.';
       [
         'Vendedora',
-        'Meta produção total (R$)',
         'Meta averbação (R$)',
         'Meta rentabilidade (R$)',
-        'Rent. / dia útil rest.',
-        'Produção / dia útil rest.',
+        thTx,
       ].forEach(function (h) {
-        hr.appendChild(el('th', null, h));
+        hr.appendChild(typeof h === 'string' ? el('th', null, h) : h);
       });
       thead.appendChild(hr);
       tbl.appendChild(thead);
@@ -1507,24 +1507,6 @@
           return m.vendedoraId === v.id && m.mes === mes;
         });
         const mt = global.MaycredCalc.parseMetaTargets(meta);
-        const lancsV = st.lancamentos.filter(function (l) {
-          return l.vendedoraId === v.id && l.mes === mes;
-        });
-        const rowV = global.MaycredCalc.calcVendedora(v, meta, mes, lancsV, st);
-        const prodKey = v.produto === 'PORT' ? 'PORT' : 'ENTRANTE';
-        const diasProd = global.MaycredCalendar.getDiasUteisDoMes(mes, prodKey);
-        const dRest = global.MaycredCalendar.diasUteisRestantes(diasProd);
-        const dTot = global.MaycredCalendar.diasUteisTotais(diasProd);
-        const faltaR = Math.max(0, rowV.faltaRent);
-        const faltaP = Math.max(0, rowV.faltaProducao);
-        const ritmoR =
-          mt.metaRent > 0
-            ? global.MaycredCalc.calcMetaDiaria(faltaR, dRest, mt.metaRent, dTot)
-            : null;
-        const ritmoP =
-          mt.metaVol > 0
-            ? global.MaycredCalc.calcMetaDiaria(faltaP, dRest, mt.metaVol, dTot)
-            : null;
         const tr = el('tr');
         tr.appendChild(el('td', null, v.nome));
         function inpMeta(field, val) {
@@ -1539,23 +1521,18 @@
           td.appendChild(inp);
           tr.appendChild(td);
         }
-        inpMeta('metaProducaoTotal', mt.metaVol);
         inpMeta('metaAverbacao', mt.metaAverb);
         inpMeta('metaRentabilidade', mt.metaRent);
-        tr.appendChild(
-          el(
-            'td',
-            'ui-mono',
-            ritmoR && mt.metaRent > 0 ? formatBRL(ritmoR.metaDiaria) : '—',
-          ),
+        const tdTx = el('td', 'ui-mono');
+        tdTx.setAttribute(
+          'data-label',
+          'Média de comissão (tx) — meta rent. ÷ meta averbação',
         );
-        tr.appendChild(
-          el(
-            'td',
-            'ui-mono',
-            ritmoP && mt.metaVol > 0 ? formatBRL(ritmoP.metaDiaria) : '—',
-          ),
-        );
+        const ma = Number(mt.metaAverb);
+        const mr = Number(mt.metaRent);
+        if (!(ma > 0) || !Number.isFinite(mr)) tdTx.textContent = '—';
+        else tdTx.textContent = (Math.round((mr / ma) * 100 * 100) / 100) + '%';
+        tr.appendChild(tdTx);
         tbody.appendChild(tr);
       });
       tbl.appendChild(tbody);
@@ -1575,7 +1552,6 @@
           global.MaycredData.upsertMeta({
             vendedoraId: v.id,
             mes: mes2,
-            metaProducaoTotal: pick('metaProducaoTotal'),
             metaAverbacao: pick('metaAverbacao'),
             metaRentabilidade: pick('metaRentabilidade'),
           });

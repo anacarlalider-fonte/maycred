@@ -3,20 +3,61 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
   <title>Maycred Metas · MAY CRED</title>
-  <!-- Bump ?v= ao publicar para forçar navegador/CDN a baixar JS/CSS novos -->
-  <link rel="stylesheet" href="style.css?v=20260416-30" />
+  <script>
+    window.__MAYCRED_CACHE__ = String(Date.now());
+  </script>
+  <script>
+    (function () {
+      var v = '?v=' + window.__MAYCRED_CACHE__;
+      var l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = 'style.css' + v;
+      document.head.appendChild(l);
+    })();
+  </script>
 </head>
 <body>
   <main id="app"></main>
-  <script src="js/data.js?v=20260416-30"></script>
-  <script src="js/operacoes.js?v=20260416-30"></script>
-  <script src="js/calc.js?v=20260416-30"></script>
-  <script src="js/calendar.js?v=20260416-30"></script>
-  <script src="js/auth.js?v=20260416-30"></script>
-  <script src="js/ui.js?v=20260416-30"></script>
-  <script src="js/ui-gestor.js?v=20260416-30"></script>
-  <script src="js/ui-vendedora.js?v=20260416-30"></script>
-  <script src="js/app.js?v=20260416-30"></script>
+  <script>
+    (function () {
+      var v = '?v=' + window.__MAYCRED_CACHE__;
+      function asset(path) {
+        return path + v;
+      }
+      var scripts = [
+        'js/data.js',
+        'js/operacoes.js',
+        'js/calc.js',
+        'js/calendar.js',
+        'js/auth.js',
+        'js/ui.js',
+        'js/ui-gestor.js',
+        'js/ui-vendedora.js',
+        'js/app.js',
+      ];
+      var i = 0;
+      var app = document.getElementById('app');
+      function next() {
+        if (i >= scripts.length) return;
+        var s = document.createElement('script');
+        s.src = asset(scripts[i]);
+        s.onload = function () {
+          i++;
+          next();
+        };
+        s.onerror = function () {
+          app.innerHTML =
+            '<div class="app--boot-err"><div class="boot-err"><strong>Erro ao carregar o app</strong><p>Não foi possível carregar <code>' +
+            scripts[i] +
+            '</code>. Atualize a página ou verifique se os arquivos estão no servidor.</p></div></div>';
+        };
+        document.body.appendChild(s);
+      }
+      next();
+    })();
+  </script>
 </body>
 </html>

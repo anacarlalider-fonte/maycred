@@ -40,6 +40,7 @@
 
   const ROTAS_VENDEDORA = [
     ['vendDesempenho', 'Desempenho'],
+    ['vendPipeline', 'Pipeline'],
     ['vendClientes', 'Clientes'],
     ['vendPropostas', 'Propostas'],
     ['vendSimulador', 'Simulador'],

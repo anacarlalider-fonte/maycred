@@ -72,6 +72,41 @@
    * @property {number} spreadBanco
    * @property {number} custoOperacionalMes
    * @property {string} [dataControleProducao] - YYYY-MM-DD — “data dos dados” (referência da planilha)
+   * @property {Record<string, string>|null} [pipelineEtapasLabels] - rótulos customizados das etapas do CRM (null = padrão)
+   */
+
+  /**
+   * Lead do pipeline comercial (vendedora).
+   * @typedef {Object} PipelineLead
+   * @property {string} id
+   * @property {string} vendedoraId
+   * @property {string} titulo
+   * @property {string} cliente
+   * @property {number} valorEstimado
+   * @property {number} probabilidade - 0–100
+   * @property {string} previsaoFechamento - YYYY-MM-DD
+   * @property {'prospeccao'|'diagnostico'|'proposta'|'negociacao'|'fechado'|'perdido'} etapa
+   * @property {string} createdAt - ISO
+   * @property {string} etapaDesde - YYYY-MM-DD (entrada na etapa atual)
+   * @property {PipelineAgendamento[]} [agendamentos] - retornos, assinaturas, reuniões
+   * @property {PipelineAtendimento[]} [atendimentos] - histórico de contatos / ocorrências
+   */
+
+  /**
+   * @typedef {Object} PipelineAgendamento
+   * @property {string} id
+   * @property {string} data - YYYY-MM-DD
+   * @property {string} [hora] - HH:mm
+   * @property {string} descricao
+   * @property {string} createdAt - ISO
+   */
+
+  /**
+   * @typedef {Object} PipelineAtendimento
+   * @property {string} id
+   * @property {string} data - YYYY-MM-DD
+   * @property {string} texto - nota do atendimento
+   * @property {string} createdAt - ISO
    */
 
   /**
@@ -166,6 +201,7 @@
    * @property {TabelaBanco[]} tabelas
    * @property {Record<string, Record<string, boolean>>} permissoesPerfil - telas por perfil ADM/LIDER (Venda não usa estas rotas)
    * @property {Record<string, Record<string, ProducaoManualLinha>>} [producaoManual] - YYYY-MM → vendedoraId → valores da planilha (substituem soma de propostas/lançamentos quando existe linha para a vendedora)
+   * @property {PipelineLead[]} [pipelineLeads] - CRM pipeline (leads por vendedora)
    */
 
   /**
@@ -222,6 +258,7 @@
       spreadBanco: 0,
       custoOperacionalMes: 0,
       dataControleProducao: '',
+      pipelineEtapasLabels: null,
     };
   }
 
@@ -663,6 +700,187 @@
     };
   }
 
+  const PIPELINE_ETAPAS = /** @type {const} */ ([
+    'prospeccao',
+    'diagnostico',
+    'proposta',
+    'negociacao',
+    'fechado',
+    'perdido',
+  ]);
+
+  function todayYMD() {
+    const d = new Date();
+    return (
+      d.getFullYear() +
+      '-' +
+      String(d.getMonth() + 1).padStart(2, '0') +
+      '-' +
+      String(d.getDate()).padStart(2, '0')
+    );
+  }
+
+  /** @param {unknown} raw */
+  function normalizePipelineAgendamento(raw) {
+    const p = raw && typeof raw === 'object' ? /** @type {Record<string, unknown>} */ (raw) : {};
+    return {
+      id: String(p.id || ''),
+      data: String(p.data || '').slice(0, 10),
+      hora: String(p.hora != null ? p.hora : '').trim().slice(0, 5),
+      descricao: String(p.descricao != null ? p.descricao : '').trim(),
+      createdAt: String(p.createdAt || '') || new Date().toISOString(),
+    };
+  }
+
+  /** @param {unknown} arr */
+  function normalizePipelineAgendamentosList(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map(normalizePipelineAgendamento)
+      .filter(function (a) {
+        return a.data.length >= 10 && a.descricao.length > 0;
+      });
+  }
+
+  /** @param {unknown} raw */
+  function normalizePipelineAtendimento(raw) {
+    const p = raw && typeof raw === 'object' ? /** @type {Record<string, unknown>} */ (raw) : {};
+    return {
+      id: String(p.id || ''),
+      data: String(p.data || '').slice(0, 10),
+      texto: String(p.texto != null ? p.texto : '').trim(),
+      createdAt: String(p.createdAt || '') || new Date().toISOString(),
+    };
+  }
+
+  /** @param {unknown} arr */
+  function normalizePipelineAtendimentosList(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map(normalizePipelineAtendimento)
+      .filter(function (a) {
+        return a.data.length >= 10 && a.texto.length > 0;
+      });
+  }
+
+  /** @param {unknown} raw */
+  function normalizePipelineLead(raw) {
+    const p = raw && typeof raw === 'object' ? /** @type {Record<string, unknown>} */ (raw) : {};
+    let etapa = String(p.etapa || 'prospeccao');
+    if (PIPELINE_ETAPAS.indexOf(etapa) < 0) etapa = 'prospeccao';
+    const valor = Number(p.valorEstimado);
+    const prob = Number(p.probabilidade);
+    const ymd = String(p.etapaDesde || '').slice(0, 10);
+    const cr = String(p.createdAt || '');
+    return {
+      id: String(p.id || ''),
+      vendedoraId: String(p.vendedoraId || ''),
+      titulo: String(p.titulo != null ? p.titulo : '').trim(),
+      cliente: String(p.cliente != null ? p.cliente : '').trim(),
+      valorEstimado: Number.isFinite(valor) && valor >= 0 ? valor : 0,
+      probabilidade: Number.isFinite(prob) ? Math.min(100, Math.max(0, Math.round(prob))) : 50,
+      previsaoFechamento: String(p.previsaoFechamento || '').slice(0, 10),
+      etapa: /** @type {'prospeccao'|'diagnostico'|'proposta'|'negociacao'|'fechado'|'perdido'} */ (etapa),
+      createdAt: cr || new Date().toISOString(),
+      etapaDesde: ymd || todayYMD(),
+      agendamentos: normalizePipelineAgendamentosList(p.agendamentos),
+      atendimentos: normalizePipelineAtendimentosList(p.atendimentos),
+    };
+  }
+
+  function defaultPipelineEtapasLabels() {
+    return {
+      prospeccao: 'Prospecção',
+      diagnostico: 'Qualificação',
+      proposta: 'Formalização',
+      negociacao: 'Análise banco',
+      fechado: 'Liberado',
+      perdido: 'Não concretizado',
+    };
+  }
+
+  /** @returns {Record<string, string>} */
+  function getPipelineEtapasLabelsResolved() {
+    const def = defaultPipelineEtapasLabels();
+    const c = cache.config && cache.config.pipelineEtapasLabels;
+    if (!c || typeof c !== 'object') return def;
+    const o = /** @type {Record<string, unknown>} */ (c);
+    const out = { ...def };
+    Object.keys(out).forEach(function (k) {
+      if (o[k] != null && String(o[k]).trim()) out[k] = String(o[k]).trim();
+    });
+    return out;
+  }
+
+  /** @param {string} vendedoraId */
+  function listPipelineLeadsByVendedora(vendedoraId) {
+    const vid = String(vendedoraId);
+    const list = Array.isArray(cache.pipelineLeads) ? cache.pipelineLeads : [];
+    return list
+      .filter(function (x) {
+        return String(x.vendedoraId) === vid;
+      })
+      .map(function (x) {
+        return normalizePipelineLead(x);
+      });
+  }
+
+  /**
+   * @param {Partial<PipelineLead> & { id?: string }} partial
+   * @param {string} vendedoraIdAtiva - dona do lead (segurança)
+   * @returns {string|null} id gravado ou null se inválido
+   */
+  function savePipelineLead(partial, vendedoraIdAtiva) {
+    const vid = String(vendedoraIdAtiva || '');
+    if (!vid) return null;
+    const list = cache.pipelineLeads || (cache.pipelineLeads = []);
+    const pid = partial && partial.id ? String(partial.id) : '';
+    let base = /** @type {Record<string, unknown>} */ ({ vendedoraId: vid });
+    if (pid) {
+      const ex = list.find(function (x) {
+        return String(x.id) === pid;
+      });
+      if (!ex || String(ex.vendedoraId) !== vid) return null;
+      base = { ...ex };
+    }
+    const merged = { ...base, ...partial, vendedoraId: vid };
+    const exEt = base.etapa != null ? String(base.etapa) : '';
+    const r = normalizePipelineLead(merged);
+    if (!pid) {
+      r.id = newId('pl');
+      r.etapaDesde = todayYMD();
+      r.createdAt = new Date().toISOString();
+    } else if (String(exEt) !== String(r.etapa)) {
+      r.etapaDesde = todayYMD();
+    }
+    const i = list.findIndex(function (x) {
+      return String(x.id) === String(r.id);
+    });
+    if (i >= 0) list[i] = r;
+    else list.push(r);
+    persist();
+    return r.id;
+  }
+
+  /**
+   * @param {string} id
+   * @param {string} vendedoraIdAtiva
+   * @returns {boolean}
+   */
+  function removePipelineLead(id, vendedoraIdAtiva) {
+    const sid = String(id);
+    const vid = String(vendedoraIdAtiva);
+    const list = cache.pipelineLeads || [];
+    const n = list.filter(function (x) {
+      if (String(x.id) === sid && String(x.vendedoraId) === vid) return false;
+      return true;
+    });
+    if (n.length === list.length) return false;
+    cache.pipelineLeads = n;
+    persist();
+    return true;
+  }
+
   /** @param {unknown} raw */
   function normalizeProducaoManualLinha(raw) {
     const row = raw && typeof raw === 'object' ? /** @type {Record<string, unknown>} */ (raw) : {};
@@ -724,6 +942,7 @@
       tabelas: defaultTabelas(bancos, promotoras).map(normalizeTabelaRow),
       permissoesPerfil: defaultPermissoesPerfil(),
       producaoManual: {},
+      pipelineLeads: [],
     };
   }
 
@@ -823,6 +1042,12 @@
 
     const producaoManual = mergeProducaoManual(o.producaoManual);
 
+    const pipelineLeads = Array.isArray(o.pipelineLeads)
+      ? /** @type {unknown[]} */ (o.pipelineLeads).filter(Boolean).map(function (x) {
+          return normalizePipelineLead(x);
+        })
+      : [];
+
     return {
       config,
       vendedoras,
@@ -837,6 +1062,7 @@
       tabelas,
       permissoesPerfil,
       producaoManual,
+      pipelineLeads,
     };
   }
 
@@ -884,6 +1110,10 @@
   }
   if (!Array.isArray(cache.clientes)) {
     cache.clientes = [];
+    saveState(cache);
+  }
+  if (!Array.isArray(cache.pipelineLeads)) {
+    cache.pipelineLeads = [];
     saveState(cache);
   }
   if (!Array.isArray(cache.promotoras) || cache.promotoras.length === 0) {
@@ -955,6 +1185,9 @@
       tabelas: (cache.tabelas || []).map((t) => normalizeTabelaRow(t)),
       permissoesPerfil: mergePermissoesPerfil(cache.permissoesPerfil),
       producaoManual: JSON.parse(JSON.stringify(cache.producaoManual && typeof cache.producaoManual === 'object' ? cache.producaoManual : {})),
+      pipelineLeads: (cache.pipelineLeads || []).map(function (x) {
+        return normalizePipelineLead(x);
+      }),
     };
   }
 
@@ -1024,6 +1257,11 @@
     cache.metas = cache.metas.filter((m) => m.vendedoraId !== id);
     cache.lancamentos = cache.lancamentos.filter((l) => l.vendedoraId !== id);
     cache.operacoes = cache.operacoes.filter((o) => o.vendedoraId !== id);
+    if (Array.isArray(cache.pipelineLeads)) {
+      cache.pipelineLeads = cache.pipelineLeads.filter(function (pl) {
+        return String(pl.vendedoraId) !== String(id);
+      });
+    }
     persist();
   }
 
@@ -1492,6 +1730,10 @@
     getTabelaById,
     countOperacoesByTabelaId,
     setProducaoManualMes,
+    getPipelineEtapasLabelsResolved,
+    listPipelineLeadsByVendedora,
+    savePipelineLead,
+    removePipelineLead,
     formatConvenioTabela,
     canonicalRotaPerm,
     rotaPermitidaParaPerfil,

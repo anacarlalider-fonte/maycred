@@ -93,7 +93,10 @@
    * @typedef {Object} Meta
    * @property {string} vendedoraId
    * @property {string} mes
-   * @property {number} metaProducao — meta de rentabilidade em R$ (comissão no caixa); nome do campo mantido no armazenamento
+   * @property {number} metaProducao — espelho da meta de rentabilidade (legado / compat.)
+   * @property {number} metaRentabilidade — alvo R$ de comissão (rentabilidade) no mês
+   * @property {number} metaProducaoTotal — alvo R$ de produção (volume financiado total no mês)
+   * @property {number} [metaAverbacao] — alvo R$ só de produção averbada (opcional; 0 = não usa % meta averbação isolada)
    */
 
   /**
@@ -251,6 +254,28 @@
     ];
   }
 
+  /** @param {unknown} raw */
+  function normalizeMetaRow(raw) {
+    const m = raw && typeof raw === 'object' ? /** @type {Record<string, unknown>} */ (raw) : {};
+    const vid = String(m.vendedoraId || '');
+    const mes = String(m.mes || '');
+    const rentRaw = m.metaRentabilidade != null && m.metaRentabilidade !== '' ? m.metaRentabilidade : m.metaProducao;
+    const rent = Number(rentRaw);
+    const vol = Number(m.metaProducaoTotal);
+    const averb = Number(m.metaAverbacao);
+    const metaR = Number.isFinite(rent) && rent >= 0 ? rent : 0;
+    const metaV = Number.isFinite(vol) && vol >= 0 ? vol : 0;
+    const metaA = Number.isFinite(averb) && averb >= 0 ? averb : 0;
+    return {
+      vendedoraId: vid,
+      mes,
+      metaProducao: metaR,
+      metaRentabilidade: metaR,
+      metaProducaoTotal: metaV,
+      metaAverbacao: metaA,
+    };
+  }
+
   /** @returns {Meta[]} */
   function defaultMetas() {
     const mes = PRESET_MES;
@@ -266,7 +291,13 @@
       v_diana: 120000,
     };
     return Object.keys(map).map(function (id) {
-      return { vendedoraId: id, mes, metaProducao: map[id] };
+      return normalizeMetaRow({
+        vendedoraId: id,
+        mes,
+        metaProducao: map[id],
+        metaProducaoTotal: 0,
+        metaAverbacao: 0,
+      });
     });
   }
 
@@ -692,8 +723,8 @@
       : base.vendedoras;
 
     const metas = Array.isArray(o.metas)
-      ? /** @type {Meta[]} */ (o.metas).filter(Boolean)
-      : base.metas;
+      ? /** @type {Meta[]} */ (o.metas).filter(Boolean).map(normalizeMetaRow)
+      : base.metas.map(normalizeMetaRow);
 
     const lancamentos = Array.isArray(o.lancamentos)
       ? /** @type {Lancamento[]} */ (o.lancamentos).filter(Boolean)
@@ -963,17 +994,22 @@
 
   /** @param {Meta[]} list */
   function setMetas(list) {
-    cache.metas = list.map((m) => ({ ...m }));
+    cache.metas = list.map((m) => normalizeMetaRow(m));
     persist();
   }
 
-  /** @param {Meta} meta */
+  /** @param {Partial<Meta> & { vendedoraId: string, mes: string }} meta */
   function upsertMeta(meta) {
-    const i = cache.metas.findIndex(
-      (m) => m.vendedoraId === meta.vendedoraId && m.mes === meta.mes
-    );
-    if (i >= 0) cache.metas[i] = { ...meta };
-    else cache.metas.push({ ...meta });
+    const vid = String(meta.vendedoraId);
+    const mes = String(meta.mes);
+    const i = cache.metas.findIndex((m) => m.vendedoraId === vid && m.mes === mes);
+    const cur =
+      i >= 0
+        ? { ...cache.metas[i] }
+        : normalizeMetaRow({ vendedoraId: vid, mes, metaProducao: 0, metaProducaoTotal: 0, metaAverbacao: 0 });
+    const merged = normalizeMetaRow({ ...cur, ...meta });
+    if (i >= 0) cache.metas[i] = merged;
+    else cache.metas.push(merged);
     persist();
   }
 

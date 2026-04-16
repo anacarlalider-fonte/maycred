@@ -25,11 +25,25 @@
   }
 
   /**
+   * @param {{ metaProducao?: number, metaRentabilidade?: number, metaProducaoTotal?: number, metaAverbacao?: number }|null|undefined} meta
+   */
+  function parseMetaTargets(meta) {
+    const m = meta && typeof meta === 'object' ? meta : {};
+    const rent = Number(m.metaRentabilidade != null && m.metaRentabilidade !== '' ? m.metaRentabilidade : m.metaProducao);
+    const vol = Number(m.metaProducaoTotal);
+    const averb = Number(m.metaAverbacao);
+    const metaRent = Number.isFinite(rent) && rent >= 0 ? rent : 0;
+    const metaVol = Number.isFinite(vol) && vol >= 0 ? vol : 0;
+    const metaAverb = Number.isFinite(averb) && averb >= 0 ? averb : 0;
+    return { metaRent, metaVol, metaAverb };
+  }
+
+  /**
    * Performance de uma vendedora no mês.
    * Soma operações cadastradas (comissão × status no fluxo A/B) + lançamentos legados (produção/pago).
    *
    * @param {{ produto: 'PORT'|'ENTRANTE', id: string }} vendedora
-   * @param {{ metaProducao: number }|null|undefined} meta — `metaProducao` no JSON é o alvo de rentabilidade (R$ comissão), não produção bruta
+   * @param {{ metaProducao?: number, metaRentabilidade?: number, metaProducaoTotal?: number, metaAverbacao?: number }|null|undefined} meta
    * @param {string} mes - YYYY-MM
    * @param {Array<{ tipo: 'producao'|'pago', valor: number, produto?: 'PORT'|'ENTRANTE', analiseOverride?: number, vendedoraId?: string, mes?: string }>} lancamentos - já filtrados pelo mês
    * @param {object} bundle - `getState()` ou `{ config, operacoes, lancamentos, ... }`
@@ -44,14 +58,18 @@
     const MO = global.MaycredOperacoes;
 
     let producaoBruta = 0;
+    let producaoBrutaAnalise = 0;
+    let producaoBrutaAverbada = 0;
     let analise = 0;
     let pago = 0;
+    let rentabilidadeAverbada = 0;
 
     for (let i = 0; i < operacoes.length; i++) {
       const op = operacoes[i];
       if (!op || String(op.vendedoraId) !== String(vendedora.id) || String(op.mes) !== String(mes)) continue;
       const tipo = op.tipoOperacao;
       if (!tipo || !MO) continue;
+      if (op.status === 'CANCELADO') continue;
       const vc = Number(op.valorContrato);
       const bruto = Number.isNaN(vc) ? 0 : Math.max(0, vc);
       producaoBruta += bruto;
@@ -60,7 +78,14 @@
       const comm = MO.comissaoEstimadaParaOperacao
         ? MO.comissaoEstimadaParaOperacao(bruto, cfg, op)
         : 0;
-      if (imp.analise) analise += comm;
+      if (imp.analise) {
+        producaoBrutaAnalise += bruto;
+        analise += comm;
+      }
+      if (op.status === 'AVERBADO') {
+        producaoBrutaAverbada += bruto;
+        rentabilidadeAverbada += comm;
+      }
       if (imp.pago) pago += comm;
     }
 
@@ -70,6 +95,7 @@
       if (Number.isNaN(v)) continue;
       if (l.tipo === 'producao') {
         producaoBruta += v;
+        producaoBrutaAnalise += v;
         const prod = l.produto === 'ENTRANTE' || l.produto === 'PORT' ? l.produto : vendedora.produto;
         const taxaLinha = prod === 'PORT' ? comissaoPort : comissaoEntrante;
         const ao = l.analiseOverride;
@@ -77,6 +103,7 @@
         else analise += v * taxaLinha;
       } else if (l.tipo === 'pago') {
         pago += v;
+        rentabilidadeAverbada += v;
       }
     }
 
@@ -85,7 +112,10 @@
       const taxa = taxaComissaoVendedora(vendedora, comissaoPort, comissaoEntrante);
       const tb = typeof manual.totalBruto === 'number' && !Number.isNaN(manual.totalBruto) ? manual.totalBruto : 0;
       const ba = typeof manual.brutoAnalise === 'number' && !Number.isNaN(manual.brutoAnalise) ? manual.brutoAnalise : 0;
-      producaoBruta = tb > 0 ? tb : ba;
+      const tbUse = tb > 0 ? tb : ba;
+      producaoBruta = tbUse;
+      producaoBrutaAnalise = ba > 0 ? ba : 0;
+      producaoBrutaAverbada = Math.max(0, tbUse - producaoBrutaAnalise);
       const alRaw = manual.analiseLiquido;
       if (typeof alRaw === 'number' && !Number.isNaN(alRaw)) {
         analise = alRaw;
@@ -96,23 +126,48 @@
       }
       const pg = manual.pago;
       pago = typeof pg === 'number' && !Number.isNaN(pg) ? pg : 0;
+      rentabilidadeAverbada = pago;
     }
 
-    const metaProducao = meta && typeof meta.metaProducao === 'number' ? meta.metaProducao : 0;
+    const { metaRent, metaVol, metaAverb } = parseMetaTargets(meta);
     const total = analise + pago;
-    const falta = metaProducao - total;
-    const denom = metaProducao > 0 ? metaProducao : 0;
-    const pctGestor = denom ? (total / denom) * 100 : 0;
-    const pctVendedora = denom ? (pago / denom) * 100 : 0;
+    const faltaRent = metaRent - total;
+    const faltaProducao = metaVol - producaoBruta;
+    const faltaAverbacao = metaAverb > 0 ? metaAverb - producaoBrutaAverbada : 0;
+    const denomRent = metaRent > 0 ? metaRent : 0;
+    const denomVol = metaVol > 0 ? metaVol : 0;
+    const denomAverb = metaAverb > 0 ? metaAverb : 0;
+    const pctGestor = denomRent ? (total / denomRent) * 100 : 0;
+    const pctVendedora = denomRent ? (pago / denomRent) * 100 : 0;
+    const pctMetaProducaoTotal = denomVol ? (producaoBruta / denomVol) * 100 : 0;
+    const pctMetaAverbacao = denomAverb ? (producaoBrutaAverbada / denomAverb) * 100 : 0;
+
+    const pctCommAnalise = producaoBrutaAnalise > 0 ? (analise / producaoBrutaAnalise) * 100 : 0;
+    const pctCommAverbada = producaoBrutaAverbada > 0 ? (rentabilidadeAverbada / producaoBrutaAverbada) * 100 : 0;
+    const pctCommTotal = producaoBruta > 0 ? (total / producaoBruta) * 100 : 0;
 
     return {
       producaoBruta,
+      producaoBrutaAnalise,
+      producaoBrutaAverbada,
+      rentabilidadeAverbada,
       analise,
       pago,
       total,
-      falta,
+      metaRentabilidade: metaRent,
+      metaProducaoTotal: metaVol,
+      metaAverbacao: metaAverb,
+      falta: faltaRent,
+      faltaRent,
+      faltaProducao,
+      faltaAverbacao,
       pctGestor,
       pctVendedora,
+      pctMetaProducaoTotal,
+      pctMetaAverbacao,
+      pctCommAnalise,
+      pctCommAverbada,
+      pctCommTotal,
     };
   }
 
@@ -189,34 +244,58 @@
     const vendas = Array.isArray(todasVendedoras) ? todasVendedoras : [];
 
     let metaTotal = 0;
+    let metaProducaoTotalSoma = 0;
+    let metaAverbacaoSoma = 0;
     let producaoTotal = 0;
+    let producaoBrutaAnaliseTotal = 0;
+    let producaoBrutaAverbadaTotal = 0;
     let analiseTotal = 0;
     let pagoTotal = 0;
     let totalTotal = 0;
+    let rentabilidadeAverbadaTotal = 0;
 
     for (let i = 0; i < vendas.length; i++) {
       const v = vendas[i];
       const meta = metas.find((m) => m.vendedoraId === v.id && m.mes === mes) || null;
       const lancs = lancamentos.filter((l) => l.vendedoraId === v.id && l.mes === mes);
       const row = calcVendedora(v, meta, mes, lancs, config);
-      metaTotal += meta && typeof meta.metaProducao === 'number' ? meta.metaProducao : 0;
+      const mt = parseMetaTargets(meta);
+      metaTotal += mt.metaRent;
+      metaProducaoTotalSoma += mt.metaVol;
+      metaAverbacaoSoma += mt.metaAverb;
       producaoTotal += row.producaoBruta;
+      producaoBrutaAnaliseTotal += row.producaoBrutaAnalise;
+      producaoBrutaAverbadaTotal += row.producaoBrutaAverbada;
       analiseTotal += row.analise;
       pagoTotal += row.pago;
       totalTotal += row.total;
+      rentabilidadeAverbadaTotal += row.rentabilidadeAverbada;
     }
 
     const faltaTotal = metaTotal - totalTotal;
+    const faltaProducaoTotal = metaProducaoTotalSoma - producaoTotal;
+    const faltaAverbacaoTotal = metaAverbacaoSoma > 0 ? metaAverbacaoSoma - producaoBrutaAverbadaTotal : 0;
     const pctGeral = metaTotal > 0 ? (totalTotal / metaTotal) * 100 : 0;
+    const pctProducaoGeral = metaProducaoTotalSoma > 0 ? (producaoTotal / metaProducaoTotalSoma) * 100 : 0;
+    const pctAverbacaoGeral = metaAverbacaoSoma > 0 ? (producaoBrutaAverbadaTotal / metaAverbacaoSoma) * 100 : 0;
 
     return {
       metaTotal,
+      metaProducaoTotalSoma,
+      metaAverbacaoSoma,
       producaoTotal,
+      producaoBrutaAnaliseTotal,
+      producaoBrutaAverbadaTotal,
       analiseTotal,
       pagoTotal,
       totalTotal,
+      rentabilidadeAverbadaTotal,
       faltaTotal,
+      faltaProducaoTotal,
+      faltaAverbacaoTotal,
       pctGeral,
+      pctProducaoGeral,
+      pctAverbacaoGeral,
     };
   }
 
@@ -373,6 +452,7 @@
 
   global.MaycredCalc = {
     calcVendedora,
+    parseMetaTargets,
     calcMetaDiaria,
     calcTime,
     computeMesSnapshot,

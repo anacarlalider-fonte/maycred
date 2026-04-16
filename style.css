@@ -1258,8 +1258,12 @@ pre,
 
 .ui-table--producao-planilha {
   width: 100%;
-  min-width: 72rem;
+  min-width: 118rem;
   table-layout: auto;
+}
+
+.ui-table--metas-dual {
+  min-width: 44rem;
 }
 
 .ui-table--producao-planilha .ui-input--narrow {

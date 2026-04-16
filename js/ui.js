@@ -174,13 +174,20 @@
       'vendedora_id',
       'nome',
       'produto_padrao',
-      'meta',
+      'meta_rentabilidade',
+      'meta_producao_total',
+      'meta_averbacao',
       'producao_bruta',
+      'producao_analise',
+      'producao_averbada',
       'analise',
       'pago',
       'total',
-      'falta',
-      'pct_meta',
+      'falta_rent',
+      'falta_producao',
+      'pct_meta_rent',
+      'pct_meta_producao',
+      'pct_meta_averbacao',
       'taxa_efetiva_pct',
       'n_ops_producao',
     ];
@@ -195,12 +202,19 @@
         '',
         '',
         t.metaTotal,
+        t.metaProducaoTotalSoma,
+        t.metaAverbacaoSoma,
         t.producaoTotal,
+        t.producaoBrutaAnaliseTotal,
+        t.producaoBrutaAverbadaTotal,
         t.analiseTotal,
         t.pagoTotal,
         t.totalTotal,
         t.faltaTotal,
+        t.faltaProducaoTotal,
         t.pctGeral,
+        t.pctProducaoGeral,
+        t.pctAverbacaoGeral,
         teTeam,
         snap.nOpsProducao,
       ]
@@ -211,7 +225,7 @@
       const v = L.vendedora;
       const m = L.meta;
       const r = L.row;
-      const metaP = m && typeof m.metaProducao === 'number' ? m.metaProducao : 0;
+      const mt = global.MaycredCalc.parseMetaTargets(m);
       const te = r.producaoBruta > 0 ? (r.analise / r.producaoBruta) * 100 : '';
       lines.push(
         [
@@ -220,13 +234,20 @@
           v.id,
           v.nome,
           v.produto,
-          metaP,
+          mt.metaRent,
+          mt.metaVol,
+          mt.metaAverb,
           r.producaoBruta,
+          r.producaoBrutaAnalise,
+          r.producaoBrutaAverbada,
           r.analise,
           r.pago,
           r.total,
-          r.falta,
+          r.faltaRent,
+          r.faltaProducao,
           r.pctGestor,
+          r.pctMetaProducaoTotal,
+          mt.metaAverb > 0 ? r.pctMetaAverbacao : '',
           te,
           L.nOpsProducao,
         ]
@@ -295,9 +316,12 @@
     sorted.forEach(function (L) {
       const v = L.vendedora;
       const row = L.row;
-      const metaP = L.meta && typeof L.meta.metaProducao === 'number' ? L.meta.metaProducao : 0;
+      const mt = global.MaycredCalc.parseMetaTargets(L.meta);
+      const metaRent = mt.metaRent;
+      const metaVol = mt.metaVol;
       const pctRaw = row.pctGestor;
-      const atingiu = metaP > 0 && row.total >= metaP;
+      const pctProd = row.metaProducaoTotal > 0 ? row.pctMetaProducaoTotal : 0;
+      const atingiu = metaRent > 0 && row.total >= metaRent;
       const faixa = atingiu ? 'dourado' : global.MaycredCalc.faixaDesempenhoVendedora(Math.min(100, pctRaw));
 
       const card = el('article', 'ui-rent-card ui-rent-card--' + faixa);
@@ -326,14 +350,23 @@
       bar.appendChild(trk);
       card.appendChild(bar);
 
-      if (metaP <= 0) {
-        card.appendChild(el('div', 'ui-rent-card__foot ui-muted', 'Defina a meta em Configurações → Metas do mês'));
+      if (metaRent <= 0) {
+        card.appendChild(el('div', 'ui-rent-card__foot ui-muted', 'Defina as metas em Configurações → Metas do mês'));
       } else if (atingiu) {
         card.appendChild(el('div', 'ui-rent-card__foot ui-rent-card__foot--ok', '100% — rentabilidade do mês fechada'));
       } else {
         const faltaPct = Math.max(0, 100 - pctRaw);
         card.appendChild(
-          el('div', 'ui-rent-card__foot', 'Faltam ~' + faltaPct.toFixed(0) + '% para 100%')
+          el('div', 'ui-rent-card__foot', 'Faltam ~' + faltaPct.toFixed(0) + '% na rentabilidade')
+        );
+      }
+      if (metaVol > 0) {
+        card.appendChild(
+          el(
+            'div',
+            'ui-rent-card__foot ui-muted',
+            'Volume (bruto): ' + Math.round(Math.min(100, pctProd)) + '% da meta de produção',
+          ),
         );
       }
 
@@ -351,7 +384,7 @@
       el(
         'p',
         'ui-muted',
-        'Planilha de controle do mês (seletor no topo). Marque a coluna Manual na vendedora, preencha como no Excel e clique em Salvar planilha — o Dashboard e os totais usam esses números. Com a caixa desmarcada, a linha segue a soma automática de propostas e lançamentos. Meta de rentabilidade do mês em Configurações → Metas do mês. Se Análise líquido ficar vazio mas Bruto análise estiver preenchido, a rentabilidade em análise usa a taxa do produto (PORT / ENTRANTE) das configurações.',
+        'Planilha de controle do mês (seletor no topo). Metas de produção e rentabilidade em Configurações → Metas do mês. Marque Manual para sobrescrever com valores digitados. Sem Manual, a produção em análise / averbada e as rentabilidades vêm das propostas (status). Se Análise líquido estiver vazio no manual, usa a taxa PORT/ENTRANTE.',
       ),
     );
 
@@ -390,6 +423,14 @@
       return inp;
     }
 
+    function pctOrDash(label, val) {
+      const td = el('td', 'ui-mono');
+      td.setAttribute('data-label', label);
+      if (!Number.isFinite(val) || val < 0) td.textContent = '—';
+      else td.textContent = (Math.round(val * 10) / 10) + '%';
+      return td;
+    }
+
     function paint() {
       clear(tw);
       clear(twResumo);
@@ -422,14 +463,30 @@
         'Produto',
         'Contrato',
         'Prod. mês ant. (' + (prevMes || '—') + ')',
-        'Meta mês (R$)',
+        'Meta prod. (R$)',
+        'Meta rent. (R$)',
+        'Meta averb. (R$)',
+        'Pr. em análise',
+        '% com.',
+        'Rent. análise',
+        'Pr. averbada',
+        '% com.',
+        'Rent. averb.',
+        'Tot. pr.',
+        'Tot. rent.',
+        '% com.',
         'Bruto análise',
         'Análise líquido',
         'Pago',
         'Total bruto',
         'Rentab. total (R$)',
-        'Falta',
-        'Por dia',
+        'Falta rent.',
+        'Falta prod.',
+        '/dia rent',
+        '/dia prod',
+        '% meta rent',
+        '% meta prod',
+        '% meta averb',
       ].forEach(function (h) {
         hr.appendChild(el('th', null, h));
       });
@@ -438,14 +495,17 @@
       const tbody = el('tbody');
 
       const agg = {
-        PORT: { meta: 0, bruto: 0, liquido: 0, falta: 0, porDia: 0 },
-        ENTRANTE: { meta: 0, bruto: 0, liquido: 0, falta: 0, porDia: 0 },
+        PORT: { metaRent: 0, metaVol: 0, bruto: 0, liquido: 0, faltaRent: 0, faltaProd: 0 },
+        ENTRANTE: { metaRent: 0, metaVol: 0, bruto: 0, liquido: 0, faltaRent: 0, faltaProd: 0 },
       };
 
       order.forEach(function (R) {
         const v = R.v;
         const row = R.row;
-        const metaP = R.meta && typeof R.meta.metaProducao === 'number' ? R.meta.metaProducao : 0;
+        const mt = global.MaycredCalc.parseMetaTargets(R.meta);
+        const metaRent = mt.metaRent;
+        const metaVol = mt.metaVol;
+        const metaAverb = mt.metaAverb;
         const man = pm[v.id] && pm[v.id].ativo ? pm[v.id] : null;
         const prevLine =
           snapPrev && snapPrev.linhas
@@ -459,16 +519,18 @@
             ? man.prodMesAnterior
             : prevTotal;
 
-        const falta = row.falta;
-        const md = global.MaycredCalc.calcMetaDiaria(falta, diasRest, metaP, diasTot);
-        const porDia = md.metaDiaria;
+        const faltaRent = row.faltaRent;
+        const faltaProd = row.faltaProducao;
+        const mdR = global.MaycredCalc.calcMetaDiaria(faltaRent, diasRest, metaRent, diasTot);
+        const mdP = global.MaycredCalc.calcMetaDiaria(faltaProd, diasRest, metaVol, diasTot);
 
         const g = v.produto === 'ENTRANTE' ? agg.ENTRANTE : agg.PORT;
-        g.meta += metaP;
+        g.metaRent += metaRent;
+        g.metaVol += metaVol;
         g.bruto += row.producaoBruta;
         g.liquido += row.total;
-        g.falta += falta;
-        g.porDia += porDia;
+        g.faltaRent += faltaRent;
+        g.faltaProd += faltaProd;
 
         const tr = el('tr');
 
@@ -521,7 +583,19 @@
         tdPant.appendChild(inPant);
         tr.appendChild(tdPant);
 
-        tr.appendChild(moneyCellRead('Meta mês (R$)', metaP));
+        tr.appendChild(moneyCellRead('Meta prod. (R$)', metaVol));
+        tr.appendChild(moneyCellRead('Meta rent. (R$)', metaRent));
+        tr.appendChild(moneyCellRead('Meta averb. (R$)', metaAverb));
+
+        tr.appendChild(moneyCellRead('Pr. em análise', row.producaoBrutaAnalise));
+        tr.appendChild(pctOrDash('% com. (análise)', row.pctCommAnalise));
+        tr.appendChild(moneyCellRead('Rent. análise', row.analise));
+        tr.appendChild(moneyCellRead('Pr. averbada', row.producaoBrutaAverbada));
+        tr.appendChild(pctOrDash('% com. (averb.)', row.pctCommAverbada));
+        tr.appendChild(moneyCellRead('Rent. averb.', row.rentabilidadeAverbada));
+        tr.appendChild(moneyCellRead('Tot. pr.', row.producaoBruta));
+        tr.appendChild(moneyCellRead('Tot. rent.', row.total));
+        tr.appendChild(pctOrDash('% com. (total)', row.pctCommTotal));
 
         const tdBA = el('td', 'ui-producao-input-cell');
         tdBA.setAttribute('data-label', 'Bruto análise');
@@ -561,8 +635,13 @@
         tr.appendChild(tdTB);
 
         tr.appendChild(moneyCellRead('Rentab. total (R$)', row.total));
-        tr.appendChild(moneyCellRead('Falta', falta));
-        tr.appendChild(moneyCellRead('Por dia', porDia));
+        tr.appendChild(moneyCellRead('Falta rent.', faltaRent));
+        tr.appendChild(moneyCellRead('Falta prod.', faltaProd));
+        tr.appendChild(moneyCellRead('/dia rent', mdR.metaDiaria));
+        tr.appendChild(moneyCellRead('/dia prod', mdP.metaDiaria));
+        tr.appendChild(pctOrDash('% meta rent', row.pctGestor));
+        tr.appendChild(pctOrDash('% meta prod', row.pctMetaProducaoTotal));
+        tr.appendChild(pctOrDash('% meta averb', metaAverb > 0 ? row.pctMetaAverbacao : NaN));
 
         cb.addEventListener('change', function () {
           const on = cb.checked;
@@ -585,7 +664,13 @@
       });
 
       const team = snap.team;
-      const mdTeam = global.MaycredCalc.calcMetaDiaria(team.faltaTotal, diasRest, team.metaTotal, diasTot);
+      const mdTeamR = global.MaycredCalc.calcMetaDiaria(team.faltaTotal, diasRest, team.metaTotal, diasTot);
+      const mdTeamP = global.MaycredCalc.calcMetaDiaria(
+        team.faltaProducaoTotal,
+        diasRest,
+        team.metaProducaoTotalSoma,
+        diasTot,
+      );
       const tfoot = el('tfoot');
       const fr = el('tr', 'ui-producao-total-geral');
       fr.appendChild(el('td', 'ui-muted', ''));
@@ -594,49 +679,81 @@
       fr.appendChild(el('td', 'ui-muted', '—'));
       fr.appendChild(el('td', 'ui-muted', '—'));
       fr.appendChild(el('td', 'ui-muted', '—'));
-      fr.appendChild(moneyCellRead('Meta mês (R$)', team.metaTotal));
+      fr.appendChild(moneyCellRead('Σ Meta prod.', team.metaProducaoTotalSoma));
+      fr.appendChild(moneyCellRead('Σ Meta rent.', team.metaTotal));
+      fr.appendChild(moneyCellRead('Σ Meta averb.', team.metaAverbacaoSoma));
+      fr.appendChild(moneyCellRead('Pr. análise', team.producaoBrutaAnaliseTotal));
+      fr.appendChild(
+        pctOrDash(
+          '% com. análise',
+          team.producaoBrutaAnaliseTotal > 0 ? (team.analiseTotal / team.producaoBrutaAnaliseTotal) * 100 : NaN,
+        ),
+      );
+      fr.appendChild(moneyCellRead('Rent. análise', team.analiseTotal));
+      fr.appendChild(moneyCellRead('Pr. averb.', team.producaoBrutaAverbadaTotal));
+      fr.appendChild(
+        pctOrDash(
+          '% com. averb.',
+          team.producaoBrutaAverbadaTotal > 0
+            ? (team.rentabilidadeAverbadaTotal / team.producaoBrutaAverbadaTotal) * 100
+            : NaN,
+        ),
+      );
+      fr.appendChild(moneyCellRead('Rent. averb.', team.rentabilidadeAverbadaTotal));
+      fr.appendChild(moneyCellRead('Tot. pr.', team.producaoTotal));
+      fr.appendChild(moneyCellRead('Tot. rent.', team.totalTotal));
+      fr.appendChild(
+        pctOrDash('% com. total', team.producaoTotal > 0 ? (team.totalTotal / team.producaoTotal) * 100 : NaN),
+      );
       fr.appendChild(el('td', 'ui-muted', '—'));
       fr.appendChild(el('td', 'ui-muted', '—'));
       fr.appendChild(el('td', 'ui-muted', '—'));
       fr.appendChild(el('td', 'ui-muted', '—'));
       fr.appendChild(moneyCellRead('Rentab. total (R$)', team.totalTotal));
-      fr.appendChild(moneyCellRead('Falta', team.faltaTotal));
-      fr.appendChild(moneyCellRead('Por dia', mdTeam.metaDiaria));
+      fr.appendChild(moneyCellRead('Falta rent.', team.faltaTotal));
+      fr.appendChild(moneyCellRead('Falta prod.', team.faltaProducaoTotal));
+      fr.appendChild(moneyCellRead('/dia rent', mdTeamR.metaDiaria));
+      fr.appendChild(moneyCellRead('/dia prod', mdTeamP.metaDiaria));
+      fr.appendChild(pctOrDash('% meta rent', team.pctGeral));
+      fr.appendChild(pctOrDash('% meta prod', team.pctProducaoGeral));
+      fr.appendChild(pctOrDash('% meta averb', team.metaAverbacaoSoma > 0 ? team.pctAverbacaoGeral : NaN));
       tfoot.appendChild(fr);
       table.appendChild(tbody);
       table.appendChild(tfoot);
       tw.appendChild(table);
 
-      function subLinha(titulo, a) {
+      function subLinhaRent(titulo, a) {
         const tr = el('tr');
         tr.appendChild(el('td', 'ui-mono', titulo));
-        tr.appendChild(moneyCellRead('META', a.meta));
-        tr.appendChild(moneyCellRead('BRUTO VENDIDO', a.bruto));
-        tr.appendChild(moneyCellRead('LÍQUIDO (análise+pago)', a.liquido));
-        tr.appendChild(moneyCellRead('FALTA', a.falta));
-        tr.appendChild(moneyCellRead('POR DIA', a.porDia));
+        tr.appendChild(moneyCellRead('META rent.', a.metaRent));
+        tr.appendChild(moneyCellRead('META prod.', a.metaVol));
+        tr.appendChild(moneyCellRead('BRUTO', a.bruto));
+        tr.appendChild(moneyCellRead('LÍQ. rent.', a.liquido));
+        tr.appendChild(moneyCellRead('FALTA rent.', a.faltaRent));
+        tr.appendChild(moneyCellRead('FALTA prod.', a.faltaProd));
         return tr;
       }
 
       const t2 = el('table', 'ui-table ui-table--producao-resumo-por-produto-inner');
       const th2 = el('thead');
       const hr2 = el('tr');
-      ['', 'META', 'BRUTO VENDIDO', 'LÍQUIDO', 'FALTA', 'POR DIA'].forEach(function (h) {
+      ['', 'META rent.', 'META prod.', 'BRUTO', 'LÍQ. rent.', 'FALTA rent.', 'FALTA prod.'].forEach(function (h) {
         hr2.appendChild(el('th', null, h));
       });
       th2.appendChild(hr2);
       t2.appendChild(th2);
       const tb2 = el('tbody');
-      tb2.appendChild(subLinha('META PORT', agg.PORT));
-      tb2.appendChild(subLinha('META ENTRANTE', agg.ENTRANTE));
+      tb2.appendChild(subLinhaRent('PORT', agg.PORT));
+      tb2.appendChild(subLinhaRent('ENTRANTE', agg.ENTRANTE));
       const totAgg = {
-        meta: agg.PORT.meta + agg.ENTRANTE.meta,
+        metaRent: agg.PORT.metaRent + agg.ENTRANTE.metaRent,
+        metaVol: agg.PORT.metaVol + agg.ENTRANTE.metaVol,
         bruto: agg.PORT.bruto + agg.ENTRANTE.bruto,
         liquido: agg.PORT.liquido + agg.ENTRANTE.liquido,
-        falta: agg.PORT.falta + agg.ENTRANTE.falta,
-        porDia: agg.PORT.porDia + agg.ENTRANTE.porDia,
+        faltaRent: agg.PORT.faltaRent + agg.ENTRANTE.faltaRent,
+        faltaProd: agg.PORT.faltaProd + agg.ENTRANTE.faltaProd,
       };
-      const trT = subLinha('TOTAL', totAgg);
+      const trT = subLinhaRent('TOTAL', totAgg);
       trT.className = 'ui-producao-total-geral';
       tb2.appendChild(trT);
       t2.appendChild(tb2);
@@ -1347,7 +1464,7 @@
     if (!embedded) container.appendChild(root);
   }
 
-  /** Metas de rentabilidade (R$ comissão) por vendedora no mês ativo. */
+  /** Metas de produção (volume R$) e rentabilidade (comissão R$) por vendedora no mês ativo. */
   function renderMetasMesGestor(container) {
     clear(container);
     const block = el('div', 'ui-config-block');
@@ -1356,7 +1473,7 @@
       el(
         'p',
         'ui-muted',
-        'Mês no topo. Cada valor é quanto a vendedora deve gerar de comissão (rentabilidade) no caixa: soma de valor financiado × % da tabela nas propostas com tabela vinculada. O valor financiado nas propostas continua para controle, mas a meta batida é por rentabilidade. Dashboard e área da vendedora usam este alvo.',
+        'Mês no topo. Meta produção: alvo em R$ de volume financiado (total no mês). Meta averbação: alvo só da parte averbada (opcional; 0 = não exibe % meta averbação isolada). Meta rentabilidade: alvo em R$ de comissão que a empresa recebe (propostas com tabela e %). O dashboard mostra % de rentabilidade e, se preenchida, % da meta de produção.',
       ),
     );
     const metasCfgHost = el('div');
@@ -1365,11 +1482,12 @@
       clear(metasCfgHost);
       const st = global.MaycredData.getState();
       const mes = st.config.mesAtual;
-      const tbl = el('table', 'ui-table ui-table--responsive');
+      const tbl = el('table', 'ui-table ui-table--responsive ui-table--metas-dual');
       const thead = el('thead');
       const hr = el('tr');
-      hr.appendChild(el('th', null, 'Vendedora'));
-      hr.appendChild(el('th', null, 'Meta rentabilidade (R$)'));
+      ['Vendedora', 'Meta produção total (R$)', 'Meta averbação (R$)', 'Meta rentabilidade (R$)'].forEach(function (h) {
+        hr.appendChild(el('th', null, h));
+      });
       thead.appendChild(hr);
       tbl.appendChild(thead);
       const tbody = el('tbody');
@@ -1377,17 +1495,24 @@
         const meta = st.metas.find(function (m) {
           return m.vendedoraId === v.id && m.mes === mes;
         });
+        const mt = global.MaycredCalc.parseMetaTargets(meta);
         const tr = el('tr');
         tr.appendChild(el('td', null, v.nome));
-        const inp = el('input', 'ui-input ui-inline-meta');
-        inp.type = 'number';
-        inp.step = '0.01';
-        inp.min = '0';
-        inp.value = meta ? String(meta.metaProducao) : '';
-        inp.dataset.vid = v.id;
-        const td = el('td', null);
-        td.appendChild(inp);
-        tr.appendChild(td);
+        function inpMeta(field, val) {
+          const inp = el('input', 'ui-input ui-inline-meta');
+          inp.type = 'number';
+          inp.step = '0.01';
+          inp.min = '0';
+          inp.value = val > 0 ? String(val) : '';
+          inp.dataset.vid = v.id;
+          inp.dataset.field = field;
+          const td = el('td', null);
+          td.appendChild(inp);
+          tr.appendChild(td);
+        }
+        inpMeta('metaProducaoTotal', mt.metaVol);
+        inpMeta('metaAverbacao', mt.metaAverb);
+        inpMeta('metaRentabilidade', mt.metaRent);
         tbody.appendChild(tr);
       });
       tbl.appendChild(tbody);
@@ -1399,11 +1524,18 @@
         const st2 = global.MaycredData.getState();
         const mes2 = st2.config.mesAtual;
         st2.vendedoras.forEach(function (v) {
-          const inp = metasCfgHost.querySelector('input[data-vid="' + v.id + '"]');
-          const val = parseFloat(inp && inp.value);
-          if (!Number.isNaN(val) && val >= 0) {
-            global.MaycredData.upsertMeta({ vendedoraId: v.id, mes: mes2, metaProducao: val });
-          }
+          const pick = function (field) {
+            const inp = metasCfgHost.querySelector('input[data-vid="' + v.id + '"][data-field="' + field + '"]');
+            const val = parseFloat(inp && inp.value);
+            return Number.isNaN(val) || val < 0 ? 0 : val;
+          };
+          global.MaycredData.upsertMeta({
+            vendedoraId: v.id,
+            mes: mes2,
+            metaProducaoTotal: pick('metaProducaoTotal'),
+            metaAverbacao: pick('metaAverbacao'),
+            metaRentabilidade: pick('metaRentabilidade'),
+          });
         });
         toast('Metas salvas.', 'success');
         paintMetasCfg();
@@ -1578,9 +1710,9 @@
       return l.vendedoraId === vid && l.mes === mes;
     });
     const row = global.MaycredCalc.calcVendedora(self, meta, mes, lancs, st);
-    const metaP = meta && typeof meta.metaProducao === 'number' ? meta.metaProducao : 0;
+    const metaRent = global.MaycredCalc.parseMetaTargets(meta).metaRent;
     const pct = row.pctVendedora;
-    const batida = global.MaycredCalc.metaBatidaVendedora(metaP, row.pago);
+    const batida = global.MaycredCalc.metaBatidaVendedora(metaRent, row.pago);
     const faixa = batida ? 'dourado' : global.MaycredCalc.faixaDesempenhoVendedora(pct);
     const msg = global.MaycredCalc.mensagemMotivacional(faixa);
 

@@ -1159,7 +1159,7 @@
       st.metas.find(function (m) {
         return m.vendedoraId === vid && m.mes === mes;
       }) || null;
-    const metaP = meta && typeof meta.metaProducao === 'number' ? meta.metaProducao : 0;
+    const metaRent = global.MaycredCalc.parseMetaTargets(meta).metaRent;
     const lancs = st.lancamentos.filter(function (l) {
       return l.vendedoraId === vid && l.mes === mes;
     });
@@ -1222,7 +1222,7 @@
         toast('Tabela inválida.', 'error');
         return;
       }
-      const sim = global.MaycredCalc.calcSimulacaoVendedoraPago(row, vf, tab.comissao, metaP);
+      const sim = global.MaycredCalc.calcSimulacaoVendedoraPago(row, vf, tab.comissao, metaRent);
       clear(out);
       out.appendChild(el('p', 'ui-vend-sim-line', '% atual (pago): ' + sim.pctAtual + '%'));
       out.appendChild(

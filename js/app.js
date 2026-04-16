@@ -78,6 +78,23 @@
       return;
     }
 
+    if (
+      MaycredAuth.hasPainelGestor() &&
+      MaycredAuth.isVendedora() &&
+      tela === 'vendPipeline'
+    ) {
+      safeDestroyCharts();
+      const content = document.getElementById('app-content');
+      if (!content || !MaycredAuth.isLoggedIn()) return;
+      telaAtual = 'vendPipeline';
+      document.querySelectorAll('.app-nav__btn').forEach(function (b) {
+        b.classList.toggle('app-nav__btn--active', b.getAttribute('data-tela') === 'vendPipeline');
+      });
+      MaycredVendUI.paint(content, 'vendPipeline');
+      closeSidebarMobile();
+      return;
+    }
+
     safeDestroyCharts();
 
     const content = document.getElementById('app-content');
@@ -423,6 +440,9 @@
           nav.appendChild(navBtn(pair[0], pair[1]));
         });
       }
+      if (MaycredAuth.isVendedora()) {
+        nav.appendChild(navBtn('vendPipeline', 'Pipeline'));
+      }
       if (MaycredAuth.rotaPermitida('configuracoes')) {
         nav.appendChild(navHint('Equipe e configurações'));
         nav.appendChild(navBtn('configuracoes', 'Configurações'));
@@ -488,6 +508,17 @@
       if (!MaycredAuth.isLoggedIn()) return;
       if (MaycredAuth.isVendedoraCampo()) {
         navigateVendedora(telaVendedoraAtual);
+        return;
+      }
+      if (
+        telaAtual === 'vendPipeline' &&
+        MaycredAuth.hasPainelGestor() &&
+        MaycredAuth.isVendedora()
+      ) {
+        const content = document.getElementById('app-content');
+        if (content && typeof MaycredVendUI !== 'undefined') {
+          MaycredVendUI.paint(content, 'vendPipeline');
+        }
         return;
       }
       if (telaAtual && telaAtual !== 'semPermissao') navigate(telaAtual);

@@ -1878,9 +1878,12 @@
   }
 
   function paint(container, tela) {
-    if (!global.MaycredAuth.isVendedoraCampo || !global.MaycredAuth.isVendedoraCampo()) {
+    const vid = global.MaycredAuth.getVendedoraIdAtiva && global.MaycredAuth.getVendedoraIdAtiva();
+    if (!global.MaycredAuth.isVendedora || !global.MaycredAuth.isVendedora() || !vid) {
       clear(container);
-      container.appendChild(el('p', 'ui-muted', 'Área exclusiva da vendedora.'));
+      container.appendChild(
+        el('p', 'ui-muted', 'Entre com usuário de correspondente para ver esta área. O usuário gestor não tem pipeline próprio.'),
+      );
       return;
     }
     switch (tela) {

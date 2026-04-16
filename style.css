@@ -1364,6 +1364,38 @@ pre,
   word-break: break-word;
 }
 
+.ui-pipeline-hist-intro {
+  font-size: 0.8rem;
+  margin: 0 0 0.75rem;
+  max-width: 42rem;
+  line-height: 1.45;
+}
+
+.ui-pipeline-crm-line__headrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.65rem;
+  margin-bottom: 0.15rem;
+}
+
+.ui-pipeline-crm-tag {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--amber);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.ui-pipeline-crm-tag--contato {
+  color: var(--cyan);
+  border-color: rgba(34, 211, 238, 0.45);
+}
+
 .ui-pipeline-hist-top {
   display: flex;
   flex-wrap: wrap;

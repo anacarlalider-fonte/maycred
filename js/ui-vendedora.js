@@ -1455,7 +1455,11 @@
         const tabIds = ['dados', 'agenda', 'hist'];
         const tabBtn = {};
         tabIds.forEach(function (tid) {
-          const b = el('button', 'ui-pipeline-crm-tab', tid === 'dados' ? 'Dados' : tid === 'agenda' ? 'Agendamentos' : 'Histórico de atendimentos');
+          const b = el(
+            'button',
+            'ui-pipeline-crm-tab',
+            tid === 'dados' ? 'Dados' : tid === 'agenda' ? 'Agendamentos' : 'Histórico',
+          );
           b.type = 'button';
           b.setAttribute('data-tab', tid);
           tabBtn[tid] = b;
@@ -1587,6 +1591,7 @@
               });
               if (ix >= 0) leadAg.splice(ix, 1);
               paintAgenda();
+              paintHist();
             });
             row.appendChild(left);
             row.appendChild(rm);
@@ -1609,10 +1614,17 @@
           });
           agTxt.value = '';
           paintAgenda();
+          paintHist();
           toast('Agendamento incluído (salve para gravar).', 'info');
         });
         paintAgenda();
 
+        const histIntro = el(
+          'p',
+          'ui-muted ui-pipeline-hist-intro',
+          'Esta aba reúne agendamentos (retornos, datas) e registros de contato. Os dois são salvos ao clicar em Salvar alterações.',
+        );
+        panHist.appendChild(histIntro);
         const histTop = el('div', 'ui-pipeline-hist-top');
         const histCount = el('span', 'ui-pipeline-hist-count', '');
         const btnReg = el('button', 'ui-btn ui-btn--primary', '+ Registrar contato');
@@ -1642,41 +1654,97 @@
         panHist.appendChild(histList);
 
         function paintHistCount() {
-          histCount.textContent = leadAt.length + ' atendimento' + (leadAt.length === 1 ? '' : 's') + ' registrado' + (leadAt.length === 1 ? '' : 's');
-        }
-        function sortAt(a, b) {
-          const c = String(b.data).localeCompare(String(a.data));
-          if (c !== 0) return c;
-          return String(b.createdAt).localeCompare(String(a.createdAt));
+          const n = leadAg.length + leadAt.length;
+          histCount.textContent =
+            n + ' registro' + (n === 1 ? '' : 's') + ' (agendamentos + contatos)';
         }
         function paintHist() {
           clear(histList);
           paintHistCount();
-          const sorted = leadAt.slice().sort(sortAt);
-          if (!sorted.length) {
-            histList.appendChild(el('p', 'ui-muted ui-pipeline-hist-empty', 'Nenhum atendimento registrado ainda.'));
+          const merged = [];
+          leadAg.forEach(function (ag) {
+            merged.push({
+              kind: 'ag',
+              ref: ag,
+              sortKey: String(ag.data || '') + ' ' + (ag.hora || '00:00') + ' ' + String(ag.id || ''),
+            });
+          });
+          leadAt.forEach(function (at) {
+            merged.push({
+              kind: 'at',
+              ref: at,
+              sortKey: String(at.data || '') + ' ' + String(at.createdAt || '') + ' ' + String(at.id || ''),
+            });
+          });
+          merged.sort(function (a, b) {
+            return b.sortKey.localeCompare(a.sortKey);
+          });
+          if (!merged.length) {
             histList.appendChild(
-              el('p', 'ui-muted ui-pipeline-hist-empty2', "Clique em \"Registrar contato\" para adicionar o primeiro."),
+              el('p', 'ui-muted ui-pipeline-hist-empty', 'Nenhum agendamento nem contato ainda.'),
+            );
+            histList.appendChild(
+              el(
+                'p',
+                'ui-muted ui-pipeline-hist-empty2',
+                'Use a aba Agendamentos ou o botão + Registrar contato acima.',
+              ),
             );
             return;
           }
-          sorted.forEach(function (at) {
-            const row = el('div', 'ui-pipeline-crm-line');
-            const left = el('div', 'ui-pipeline-crm-line__main');
-            left.appendChild(el('strong', 'ui-pipeline-crm-line__date', formatDateBR(at.data)));
-            left.appendChild(el('span', 'ui-pipeline-crm-line__txt', at.texto));
-            const rm = el('button', 'ui-btn ui-btn--ghost ui-btn--sm', 'Excluir');
-            rm.type = 'button';
-            rm.addEventListener('click', function () {
-              const ix = leadAt.findIndex(function (x) {
-                return x.id === at.id;
+          merged.forEach(function (row) {
+            if (row.kind === 'ag') {
+              const ag = row.ref;
+              const line = el('div', 'ui-pipeline-crm-line');
+              const left = el('div', 'ui-pipeline-crm-line__main');
+              const tag = el('span', 'ui-pipeline-crm-tag', 'Agendamento');
+              const head = el('div', 'ui-pipeline-crm-line__headrow');
+              head.appendChild(tag);
+              head.appendChild(
+                el(
+                  'strong',
+                  'ui-pipeline-crm-line__date',
+                  formatDateBR(ag.data) + (ag.hora ? ' · ' + ag.hora : ''),
+                ),
+              );
+              left.appendChild(head);
+              left.appendChild(el('span', 'ui-pipeline-crm-line__txt', ag.descricao));
+              const rm = el('button', 'ui-btn ui-btn--ghost ui-btn--sm', 'Remover');
+              rm.type = 'button';
+              rm.addEventListener('click', function () {
+                const ix = leadAg.findIndex(function (x) {
+                  return x.id === ag.id;
+                });
+                if (ix >= 0) leadAg.splice(ix, 1);
+                paintAgenda();
+                paintHist();
               });
-              if (ix >= 0) leadAt.splice(ix, 1);
-              paintHist();
-            });
-            row.appendChild(left);
-            row.appendChild(rm);
-            histList.appendChild(row);
+              line.appendChild(left);
+              line.appendChild(rm);
+              histList.appendChild(line);
+            } else {
+              const at = row.ref;
+              const line = el('div', 'ui-pipeline-crm-line');
+              const left = el('div', 'ui-pipeline-crm-line__main');
+              const tag = el('span', 'ui-pipeline-crm-tag ui-pipeline-crm-tag--contato', 'Contato');
+              const head = el('div', 'ui-pipeline-crm-line__headrow');
+              head.appendChild(tag);
+              head.appendChild(el('strong', 'ui-pipeline-crm-line__date', formatDateBR(at.data)));
+              left.appendChild(head);
+              left.appendChild(el('span', 'ui-pipeline-crm-line__txt', at.texto));
+              const rm = el('button', 'ui-btn ui-btn--ghost ui-btn--sm', 'Excluir');
+              rm.type = 'button';
+              rm.addEventListener('click', function () {
+                const ix = leadAt.findIndex(function (x) {
+                  return x.id === at.id;
+                });
+                if (ix >= 0) leadAt.splice(ix, 1);
+                paintHist();
+              });
+              line.appendChild(left);
+              line.appendChild(rm);
+              histList.appendChild(line);
+            }
           });
         }
         btnReg.addEventListener('click', function () {
@@ -1703,7 +1771,7 @@
           atTx.value = '';
           histFormWrap.classList.add('ui-pipeline-crm-panel--hidden');
           paintHist();
-          toast('Atendimento incluído (salve para gravar).', 'info');
+          toast('Contato incluído no histórico (salve para gravar).', 'info');
         });
         paintHist();
 
@@ -1714,6 +1782,7 @@
           tabIds.forEach(function (t) {
             tabBtn[t].classList.toggle('ui-pipeline-crm-tab--active', t === tid);
           });
+          if (tid === 'hist') paintHist();
         }
         tabIds.forEach(function (tid) {
           tabBtn[tid].addEventListener('click', function () {

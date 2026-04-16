@@ -130,6 +130,8 @@
   function rotaPermitida(tela) {
     if (isGestor()) return true;
     if (!hasPainelGestor()) return false;
+    const t = String(tela || '');
+    if (t.indexOf('vend') === 0) return true;
     const perfil = getPerfilAcessoAtual();
     if (typeof global.MaycredData === 'undefined') return false;
     return global.MaycredData.rotaPermitidaParaPerfil(perfil, tela);

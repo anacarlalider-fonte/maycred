@@ -46,6 +46,15 @@
     ['vendSimulador', 'Simulador'],
   ];
 
+  /** Mesmas chaves que MaycredVendUI — não depender só do objeto (fallback se cache antigo). */
+  const TELAS_MODULO_VENDEDORA = [
+    'vendDesempenho',
+    'vendPipeline',
+    'vendClientes',
+    'vendPropostas',
+    'vendSimulador',
+  ];
+
   function navigateVendedora(tela) {
     safeDestroyCharts();
     const content = document.getElementById('app-content');
@@ -78,9 +87,7 @@
       return;
     }
 
-    const telasVendMod =
-      typeof MaycredVendUI !== 'undefined' && MaycredVendUI.TELAS ? MaycredVendUI.TELAS : [];
-    if (MaycredAuth.hasPainelGestor() && telasVendMod.indexOf(tela) >= 0) {
+    if (MaycredAuth.hasPainelGestor() && TELAS_MODULO_VENDEDORA.indexOf(tela) >= 0) {
       safeDestroyCharts();
       const content = document.getElementById('app-content');
       if (!content || !MaycredAuth.isLoggedIn()) return;
@@ -136,6 +143,15 @@
           MaycredUI.renderModuloConfiguracoes(content);
         } else {
           MaycredUI.renderVendedoras(content);
+        }
+        break;
+      case 'vendDesempenho':
+      case 'vendPipeline':
+      case 'vendClientes':
+      case 'vendPropostas':
+      case 'vendSimulador':
+        if (MaycredAuth.hasPainelGestor()) {
+          MaycredVendUI.paint(content, telaIr);
         }
         break;
       default:
@@ -491,7 +507,12 @@
         });
       }
       nav.appendChild(navHint('Correspondente'));
+      const pipe = ROTAS_VENDEDORA.find(function (p) {
+        return p[0] === 'vendPipeline';
+      });
+      if (pipe) nav.appendChild(navBtn(pipe[0], pipe[1]));
       ROTAS_VENDEDORA.forEach(function (pair) {
+        if (pair[0] === 'vendPipeline') return;
         nav.appendChild(navBtn(pair[0], pair[1]));
       });
       if (MaycredAuth.rotaPermitida('configuracoes')) {
@@ -561,10 +582,9 @@
         navigateVendedora(telaVendedoraAtual);
         return;
       }
-      const tv = typeof MaycredVendUI !== 'undefined' && MaycredVendUI.TELAS ? MaycredVendUI.TELAS : [];
       if (
         telaAtual &&
-        tv.indexOf(telaAtual) >= 0 &&
+        TELAS_MODULO_VENDEDORA.indexOf(telaAtual) >= 0 &&
         MaycredAuth.hasPainelGestor()
       ) {
         const content = document.getElementById('app-content');

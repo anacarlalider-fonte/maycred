@@ -1228,17 +1228,6 @@ pre,
   color: var(--text2);
 }
 
-.ui-producao-manual-cell {
-  text-align: center;
-  vertical-align: middle;
-}
-
-.ui-producao-manual-cell input[type='checkbox'] {
-  width: 1.1rem;
-  height: 1.1rem;
-  cursor: pointer;
-}
-
 .ui-producao-resumo-wrap {
   width: 100%;
   max-width: 100%;
@@ -1258,8 +1247,34 @@ pre,
 
 .ui-table--producao-planilha {
   width: 100%;
-  min-width: 118rem;
+  min-width: 44rem;
   table-layout: auto;
+}
+
+.ui-table--producao-planilha .ui-producao-head-phases th {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.45rem 0.35rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ui-table--producao-planilha .ui-producao-phase-head {
+  background: var(--may-navy-mid);
+  color: var(--text2);
+}
+
+.ui-table--producao-planilha .ui-producao-phase-head--analise {
+  background: rgba(46, 160, 130, 0.18);
+  color: var(--text);
+}
+
+.ui-table--producao-planilha .ui-producao-phase-head--averb {
+  background: rgba(99, 140, 220, 0.2);
+  color: var(--text);
 }
 
 .ui-table--metas-dual {

@@ -118,16 +118,6 @@
     return (p[0][0] + p[p.length - 1][0]).toUpperCase();
   }
 
-  /** @param {string} ym - YYYY-MM */
-  function mesAnterior(ym) {
-    const p = String(ym || '').split('-');
-    const y = parseInt(p[0], 10);
-    const m = parseInt(p[1], 10);
-    if (!y || m < 1 || m > 12) return '';
-    const d = new Date(y, m - 2, 1);
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-  }
-
   /** Aceita "1.234,56" ou "1234.56". */
   function parseMoneyBR(s) {
     const t = String(s || '')
@@ -147,13 +137,6 @@
     }
     const n = parseFloat(norm);
     return Number.isFinite(n) ? n : 0;
-  }
-
-  /** @param {string} nome */
-  function inferContrato(nome) {
-    const n = String(nome || '').toLowerCase();
-    if (n.includes('est')) return 'ESTÁGIO';
-    return 'CLT';
   }
 
   function csvEscapeCell(val) {
@@ -304,7 +287,7 @@
       el(
         'p',
         'ui-dash-hint ui-dash-hint--rent',
-        'Cada card mostra o quanto da meta de rentabilidade (comissão no caixa) já foi acumulado no mês. Se a gerente marcar a planilha manual em Produção, os percentuais seguem esses valores; caso contrário, entram propostas/lançamentos conforme as regras do sistema. O valor do objetivo em R$ não aparece aqui — só o progresso até 100%.'
+        'Cada card mostra o quanto da meta de rentabilidade (comissão no caixa) já foi acumulado no mês. Quando há planilha salva em Produção para a vendedora no mês, os percentuais usam esses valores; caso contrário, entram propostas e lançamentos conforme as regras do sistema. O valor do objetivo em R$ não aparece aqui — só o progresso até 100%.'
       )
     );
 
@@ -384,7 +367,7 @@
       el(
         'p',
         'ui-muted',
-        'Planilha de controle do mês (seletor no topo). Metas de produção e rentabilidade em Configurações → Metas do mês. Marque Manual para sobrescrever com valores digitados. Sem Manual, a produção em análise / averbada e as rentabilidades vêm das propostas (status). Se Análise líquido estiver vazio no manual, usa a taxa PORT/ENTRANTE.',
+        'É a mesma produção em sequência: primeiro o que está em análise (bruto e quanto entra de rentabilidade), depois o que já averbou (pago), e o total bruto do mês. O bloco “Objetivo” é só a meta de volume. Salve para gravar; se “Rent. na análise” estiver vazio, o sistema usa a taxa PORT/ENTRANTE.',
       ),
     );
 
@@ -423,11 +406,17 @@
       return inp;
     }
 
-    function pctOrDash(label, val) {
-      const td = el('td', 'ui-mono');
+    /** @param {string} label @param {string} field @param {number} initialNum */
+    function moneyFieldTd(label, field, initialNum) {
+      const td = el('td', 'ui-producao-input-cell');
       td.setAttribute('data-label', label);
-      if (!Number.isFinite(val) || val < 0) td.textContent = '—';
-      else td.textContent = (Math.round(val * 10) / 10) + '%';
+      const inp = moneyInput('');
+      inp.dataset.field = field;
+      const n = Number(initialNum);
+      if (Number.isFinite(n) && n !== 0) inp.value = String(Math.round(n * 100) / 100);
+      else if (n === 0) inp.value = '0';
+      else inp.value = '';
+      td.appendChild(inp);
       return td;
     }
 
@@ -437,14 +426,7 @@
 
       const st = global.MaycredData.getState();
       const mes = st.config.mesAtual;
-      const prevMes = mesAnterior(mes);
       const snap = global.MaycredCalc.computeMesSnapshot(st.vendedoras, mes, st);
-      const snapPrev = prevMes
-        ? global.MaycredCalc.computeMesSnapshot(st.vendedoras, prevMes, st)
-        : null;
-      const dias = global.MaycredCalendar.getDiasUteisDoMes(mes);
-      const diasRest = global.MaycredCalendar.diasUteisRestantes(dias);
-      const diasTot = global.MaycredCalendar.diasUteisTotais(dias);
       const pm = st.producaoManual && st.producaoManual[mes] ? st.producaoManual[mes] : {};
 
       inpData.value = st.config.dataControleProducao ? String(st.config.dataControleProducao).slice(0, 10) : '';
@@ -455,38 +437,29 @@
 
       const table = el('table', 'ui-table ui-table--responsive ui-table--producao-planilha');
       const thead = el('thead');
+      const trPhase = el('tr', 'ui-producao-head-phases');
+      function phaseTh(extraClass, colspan, text) {
+        const th = el('th', 'ui-producao-phase-head' + (extraClass ? ' ' + extraClass : ''));
+        if (colspan > 1) th.colSpan = colspan;
+        th.textContent = text;
+        return th;
+      }
+      trPhase.appendChild(phaseTh('', 3, 'Identificação'));
+      trPhase.appendChild(phaseTh('', 1, 'Objetivo'));
+      trPhase.appendChild(phaseTh('ui-producao-phase-head--analise', 2, 'Fase em análise'));
+      trPhase.appendChild(phaseTh('ui-producao-phase-head--averb', 1, 'Fase averbada'));
+      trPhase.appendChild(phaseTh('', 1, 'Total da produção'));
+      thead.appendChild(trPhase);
       const hr = el('tr');
       [
-        'Manual',
         'Vendedora',
         'DISC',
         'Produto',
-        'Contrato',
-        'Prod. mês ant. (' + (prevMes || '—') + ')',
-        'Meta prod. (R$)',
-        'Meta rent. (R$)',
-        'Meta averb. (R$)',
-        'Pr. em análise',
-        '% com.',
-        'Rent. análise',
-        'Pr. averbada',
-        '% com.',
-        'Rent. averb.',
-        'Tot. pr.',
-        'Tot. rent.',
-        '% com.',
-        'Bruto análise',
-        'Análise líquido',
-        'Pago',
-        'Total bruto',
-        'Rentab. total (R$)',
-        'Falta rent.',
-        'Falta prod.',
-        '/dia rent',
-        '/dia prod',
-        '% meta rent',
-        '% meta prod',
-        '% meta averb',
+        'Meta produção (R$)',
+        'Bruto em análise (R$)',
+        'Rent. na análise (R$)',
+        'Pago — entra (R$)',
+        'Total bruto (R$)',
       ].forEach(function (h) {
         hr.appendChild(el('th', null, h));
       });
@@ -495,53 +468,24 @@
       const tbody = el('tbody');
 
       const agg = {
-        PORT: { metaRent: 0, metaVol: 0, bruto: 0, liquido: 0, faltaRent: 0, faltaProd: 0 },
-        ENTRANTE: { metaRent: 0, metaVol: 0, bruto: 0, liquido: 0, faltaRent: 0, faltaProd: 0 },
+        PORT: { metaVol: 0, bruto: 0, entraAnalise: 0, entraAverb: 0 },
+        ENTRANTE: { metaVol: 0, bruto: 0, entraAnalise: 0, entraAverb: 0 },
       };
 
       order.forEach(function (R) {
         const v = R.v;
         const row = R.row;
         const mt = global.MaycredCalc.parseMetaTargets(R.meta);
-        const metaRent = mt.metaRent;
         const metaVol = mt.metaVol;
-        const metaAverb = mt.metaAverb;
-        const man = pm[v.id] && pm[v.id].ativo ? pm[v.id] : null;
-        const prevLine =
-          snapPrev && snapPrev.linhas
-            ? snapPrev.linhas.find(function (x) {
-                return String(x.vendedora.id) === String(v.id);
-              })
-            : null;
-        const prevTotal = prevLine && prevLine.row ? prevLine.row.total : 0;
-        const prodAnt =
-          man && typeof man.prodMesAnterior === 'number' && !Number.isNaN(man.prodMesAnterior)
-            ? man.prodMesAnterior
-            : prevTotal;
-
-        const faltaRent = row.faltaRent;
-        const faltaProd = row.faltaProducao;
-        const mdR = global.MaycredCalc.calcMetaDiaria(faltaRent, diasRest, metaRent, diasTot);
-        const mdP = global.MaycredCalc.calcMetaDiaria(faltaProd, diasRest, metaVol, diasTot);
+        const man = pm[v.id] && typeof pm[v.id] === 'object' ? pm[v.id] : null;
 
         const g = v.produto === 'ENTRANTE' ? agg.ENTRANTE : agg.PORT;
-        g.metaRent += metaRent;
         g.metaVol += metaVol;
         g.bruto += row.producaoBruta;
-        g.liquido += row.total;
-        g.faltaRent += faltaRent;
-        g.faltaProd += faltaProd;
+        g.entraAnalise += row.analise;
+        g.entraAverb += row.pago;
 
         const tr = el('tr');
-
-        const tdMan = el('td', 'ui-producao-manual-cell');
-        tdMan.setAttribute('data-label', 'Manual');
-        const cb = el('input', 'ui-checkbox');
-        cb.type = 'checkbox';
-        cb.title = 'Usar valores digitados (planilha) para esta vendedora no mês';
-        cb.checked = !!(man && man.ativo);
-        tdMan.appendChild(cb);
-        tr.appendChild(tdMan);
 
         const vendCell = el('td', null);
         vendCell.setAttribute('data-label', 'Vendedora');
@@ -564,52 +508,21 @@
         tdProd.appendChild(chip);
         tr.appendChild(tdProd);
 
-        const tdContr = el('td', 'ui-mono');
-        tdContr.setAttribute('data-label', 'Contrato');
-        tdContr.textContent = inferContrato(v.nome);
-        tr.appendChild(tdContr);
-
-        const tdPant = el('td', 'ui-producao-input-cell');
-        tdPant.setAttribute('data-label', 'Prod. mês ant.');
-        const inPant = moneyInput('');
-        inPant.disabled = !cb.checked;
-        if (man && man.prodMesAnterior != null && !Number.isNaN(Number(man.prodMesAnterior))) {
-          inPant.value = String(man.prodMesAnterior);
-        } else if (prodAnt > 0) {
-          inPant.value = String(Math.round(prodAnt * 100) / 100);
-        } else {
-          inPant.value = '';
-        }
-        tdPant.appendChild(inPant);
-        tr.appendChild(tdPant);
-
-        tr.appendChild(moneyCellRead('Meta prod. (R$)', metaVol));
-        tr.appendChild(moneyCellRead('Meta rent. (R$)', metaRent));
-        tr.appendChild(moneyCellRead('Meta averb. (R$)', metaAverb));
-
-        tr.appendChild(moneyCellRead('Pr. em análise', row.producaoBrutaAnalise));
-        tr.appendChild(pctOrDash('% com. (análise)', row.pctCommAnalise));
-        tr.appendChild(moneyCellRead('Rent. análise', row.analise));
-        tr.appendChild(moneyCellRead('Pr. averbada', row.producaoBrutaAverbada));
-        tr.appendChild(pctOrDash('% com. (averb.)', row.pctCommAverbada));
-        tr.appendChild(moneyCellRead('Rent. averb.', row.rentabilidadeAverbada));
-        tr.appendChild(moneyCellRead('Tot. pr.', row.producaoBruta));
-        tr.appendChild(moneyCellRead('Tot. rent.', row.total));
-        tr.appendChild(pctOrDash('% com. (total)', row.pctCommTotal));
+        tr.appendChild(moneyFieldTd('Meta produção (R$)', 'metaVol', metaVol));
 
         const tdBA = el('td', 'ui-producao-input-cell');
-        tdBA.setAttribute('data-label', 'Bruto análise');
+        tdBA.setAttribute('data-label', 'Bruto em análise (R$)');
         const inBA = moneyInput('');
-        inBA.disabled = !cb.checked;
+        inBA.dataset.field = 'brutoAnalise';
         inBA.value =
           man && man.brutoAnalise != null && !Number.isNaN(Number(man.brutoAnalise)) ? String(man.brutoAnalise) : '';
         tdBA.appendChild(inBA);
         tr.appendChild(tdBA);
 
         const tdAL = el('td', 'ui-producao-input-cell');
-        tdAL.setAttribute('data-label', 'Análise líquido');
+        tdAL.setAttribute('data-label', 'Rent. na análise (R$)');
         const inAL = moneyInput('');
-        inAL.disabled = !cb.checked;
+        inAL.dataset.field = 'analiseLiquido';
         inAL.value =
           man && man.analiseLiquido != null && !Number.isNaN(Number(man.analiseLiquido))
             ? String(man.analiseLiquido)
@@ -618,146 +531,86 @@
         tr.appendChild(tdAL);
 
         const tdPg = el('td', 'ui-producao-input-cell');
-        tdPg.setAttribute('data-label', 'Pago');
+        tdPg.setAttribute('data-label', 'Pago — entra (R$)');
         const inPg = moneyInput('');
-        inPg.disabled = !cb.checked;
-        inPg.value = man && man.pago != null && !Number.isNaN(Number(man.pago)) ? String(man.pago) : '';
+        inPg.dataset.field = 'pago';
+        inPg.value =
+          man && man.pago != null && !Number.isNaN(Number(man.pago))
+            ? String(man.pago)
+            : row.pago > 0
+              ? String(Math.round(row.pago * 100) / 100)
+              : '';
         tdPg.appendChild(inPg);
         tr.appendChild(tdPg);
 
         const tdTB = el('td', 'ui-producao-input-cell');
-        tdTB.setAttribute('data-label', 'Total bruto');
+        tdTB.setAttribute('data-label', 'Total bruto (R$)');
         const inTB = moneyInput('');
-        inTB.disabled = !cb.checked;
+        inTB.dataset.field = 'totalBruto';
         inTB.value =
-          man && man.totalBruto != null && !Number.isNaN(Number(man.totalBruto)) ? String(man.totalBruto) : '';
+          man && man.totalBruto != null && !Number.isNaN(Number(man.totalBruto))
+            ? String(man.totalBruto)
+            : row.producaoBruta > 0
+              ? String(Math.round(row.producaoBruta * 100) / 100)
+              : '';
         tdTB.appendChild(inTB);
         tr.appendChild(tdTB);
 
-        tr.appendChild(moneyCellRead('Rentab. total (R$)', row.total));
-        tr.appendChild(moneyCellRead('Falta rent.', faltaRent));
-        tr.appendChild(moneyCellRead('Falta prod.', faltaProd));
-        tr.appendChild(moneyCellRead('/dia rent', mdR.metaDiaria));
-        tr.appendChild(moneyCellRead('/dia prod', mdP.metaDiaria));
-        tr.appendChild(pctOrDash('% meta rent', row.pctGestor));
-        tr.appendChild(pctOrDash('% meta prod', row.pctMetaProducaoTotal));
-        tr.appendChild(pctOrDash('% meta averb', metaAverb > 0 ? row.pctMetaAverbacao : NaN));
-
-        cb.addEventListener('change', function () {
-          const on = cb.checked;
-          inPant.disabled = !on;
-          inBA.disabled = !on;
-          inAL.disabled = !on;
-          inPg.disabled = !on;
-          inTB.disabled = !on;
-          if (on) {
-            if (!inBA.value && row.producaoBruta > 0) inBA.value = String(Math.round(row.producaoBruta * 100) / 100);
-            if (!inAL.value && row.analise > 0) inAL.value = String(Math.round(row.analise * 100) / 100);
-            if (!inPg.value && row.pago > 0) inPg.value = String(Math.round(row.pago * 100) / 100);
-            if (!inTB.value && row.producaoBruta > 0) inTB.value = String(Math.round(row.producaoBruta * 100) / 100);
-            if (!inPant.value && prodAnt > 0) inPant.value = String(Math.round(prodAnt * 100) / 100);
-          }
-        });
+        if (!inBA.value && row.producaoBruta > 0) inBA.value = String(Math.round(row.producaoBruta * 100) / 100);
+        if (!inAL.value && row.analise > 0) inAL.value = String(Math.round(row.analise * 100) / 100);
 
         tr.dataset.vendedoraId = v.id;
         tbody.appendChild(tr);
       });
 
       const team = snap.team;
-      const mdTeamR = global.MaycredCalc.calcMetaDiaria(team.faltaTotal, diasRest, team.metaTotal, diasTot);
-      const mdTeamP = global.MaycredCalc.calcMetaDiaria(
-        team.faltaProducaoTotal,
-        diasRest,
-        team.metaProducaoTotalSoma,
-        diasTot,
-      );
       const tfoot = el('tfoot');
       const fr = el('tr', 'ui-producao-total-geral');
-      fr.appendChild(el('td', 'ui-muted', ''));
-      fr.appendChild(el('td', 'ui-producao-total-label', 'TOTAL GERAL'));
-      fr.appendChild(el('td', 'ui-muted', '—'));
-      fr.appendChild(el('td', 'ui-muted', '—'));
-      fr.appendChild(el('td', 'ui-muted', '—'));
-      fr.appendChild(el('td', 'ui-muted', '—'));
-      fr.appendChild(moneyCellRead('Σ Meta prod.', team.metaProducaoTotalSoma));
-      fr.appendChild(moneyCellRead('Σ Meta rent.', team.metaTotal));
-      fr.appendChild(moneyCellRead('Σ Meta averb.', team.metaAverbacaoSoma));
-      fr.appendChild(moneyCellRead('Pr. análise', team.producaoBrutaAnaliseTotal));
-      fr.appendChild(
-        pctOrDash(
-          '% com. análise',
-          team.producaoBrutaAnaliseTotal > 0 ? (team.analiseTotal / team.producaoBrutaAnaliseTotal) * 100 : NaN,
-        ),
-      );
-      fr.appendChild(moneyCellRead('Rent. análise', team.analiseTotal));
-      fr.appendChild(moneyCellRead('Pr. averb.', team.producaoBrutaAverbadaTotal));
-      fr.appendChild(
-        pctOrDash(
-          '% com. averb.',
-          team.producaoBrutaAverbadaTotal > 0
-            ? (team.rentabilidadeAverbadaTotal / team.producaoBrutaAverbadaTotal) * 100
-            : NaN,
-        ),
-      );
-      fr.appendChild(moneyCellRead('Rent. averb.', team.rentabilidadeAverbadaTotal));
-      fr.appendChild(moneyCellRead('Tot. pr.', team.producaoTotal));
-      fr.appendChild(moneyCellRead('Tot. rent.', team.totalTotal));
-      fr.appendChild(
-        pctOrDash('% com. total', team.producaoTotal > 0 ? (team.totalTotal / team.producaoTotal) * 100 : NaN),
-      );
-      fr.appendChild(el('td', 'ui-muted', '—'));
-      fr.appendChild(el('td', 'ui-muted', '—'));
-      fr.appendChild(el('td', 'ui-muted', '—'));
-      fr.appendChild(el('td', 'ui-muted', '—'));
-      fr.appendChild(moneyCellRead('Rentab. total (R$)', team.totalTotal));
-      fr.appendChild(moneyCellRead('Falta rent.', team.faltaTotal));
-      fr.appendChild(moneyCellRead('Falta prod.', team.faltaProducaoTotal));
-      fr.appendChild(moneyCellRead('/dia rent', mdTeamR.metaDiaria));
-      fr.appendChild(moneyCellRead('/dia prod', mdTeamP.metaDiaria));
-      fr.appendChild(pctOrDash('% meta rent', team.pctGeral));
-      fr.appendChild(pctOrDash('% meta prod', team.pctProducaoGeral));
-      fr.appendChild(pctOrDash('% meta averb', team.metaAverbacaoSoma > 0 ? team.pctAverbacaoGeral : NaN));
+      const tdTotLab = el('td', 'ui-producao-total-label', 'TOTAL GERAL');
+      tdTotLab.colSpan = 3;
+      fr.appendChild(tdTotLab);
+      fr.appendChild(moneyCellRead('Σ Meta produção', team.metaProducaoTotalSoma));
+      fr.appendChild(moneyCellRead('Σ Bruto análise', team.producaoBrutaAnaliseTotal));
+      fr.appendChild(moneyCellRead('Σ Rent. análise', team.analiseTotal));
+      fr.appendChild(moneyCellRead('Σ Pago (entra)', team.pagoTotal));
+      fr.appendChild(moneyCellRead('Σ Total bruto', team.producaoTotal));
       tfoot.appendChild(fr);
       table.appendChild(tbody);
       table.appendChild(tfoot);
       tw.appendChild(table);
 
-      function subLinhaRent(titulo, a) {
+      function subLinhaFases(titulo, a) {
         const tr = el('tr');
         tr.appendChild(el('td', 'ui-mono', titulo));
-        tr.appendChild(moneyCellRead('META rent.', a.metaRent));
         tr.appendChild(moneyCellRead('META prod.', a.metaVol));
-        tr.appendChild(moneyCellRead('BRUTO', a.bruto));
-        tr.appendChild(moneyCellRead('LÍQ. rent.', a.liquido));
-        tr.appendChild(moneyCellRead('FALTA rent.', a.faltaRent));
-        tr.appendChild(moneyCellRead('FALTA prod.', a.faltaProd));
+        tr.appendChild(moneyCellRead('Bruto', a.bruto));
+        tr.appendChild(moneyCellRead('Entra (análise)', a.entraAnalise));
+        tr.appendChild(moneyCellRead('Entra (averb.)', a.entraAverb));
         return tr;
       }
 
       const t2 = el('table', 'ui-table ui-table--producao-resumo-por-produto-inner');
       const th2 = el('thead');
       const hr2 = el('tr');
-      ['', 'META rent.', 'META prod.', 'BRUTO', 'LÍQ. rent.', 'FALTA rent.', 'FALTA prod.'].forEach(function (h) {
+      ['', 'META prod.', 'Bruto', 'Entra (análise)', 'Entra (averb.)'].forEach(function (h) {
         hr2.appendChild(el('th', null, h));
       });
       th2.appendChild(hr2);
       t2.appendChild(th2);
       const tb2 = el('tbody');
-      tb2.appendChild(subLinhaRent('PORT', agg.PORT));
-      tb2.appendChild(subLinhaRent('ENTRANTE', agg.ENTRANTE));
+      tb2.appendChild(subLinhaFases('PORT', agg.PORT));
+      tb2.appendChild(subLinhaFases('ENTRANTE', agg.ENTRANTE));
       const totAgg = {
-        metaRent: agg.PORT.metaRent + agg.ENTRANTE.metaRent,
         metaVol: agg.PORT.metaVol + agg.ENTRANTE.metaVol,
         bruto: agg.PORT.bruto + agg.ENTRANTE.bruto,
-        liquido: agg.PORT.liquido + agg.ENTRANTE.liquido,
-        faltaRent: agg.PORT.faltaRent + agg.ENTRANTE.faltaRent,
-        faltaProd: agg.PORT.faltaProd + agg.ENTRANTE.faltaProd,
+        entraAnalise: agg.PORT.entraAnalise + agg.ENTRANTE.entraAnalise,
+        entraAverb: agg.PORT.entraAverb + agg.ENTRANTE.entraAverb,
       };
-      const trT = subLinhaRent('TOTAL', totAgg);
+      const trT = subLinhaFases('TOTAL', totAgg);
       trT.className = 'ui-producao-total-geral';
       tb2.appendChild(trT);
       t2.appendChild(tb2);
-      twResumo.appendChild(el('h3', 'ui-dash-subtitle', 'Resumo por produto (como na planilha)'));
+      twResumo.appendChild(el('h3', 'ui-dash-subtitle', 'Resumo por produto (mesmas fases)'));
       twResumo.appendChild(t2);
 
       btnSave.onclick = function () {
@@ -771,25 +624,26 @@
         rowEls.forEach(function (trEl) {
           const vid = trEl.getAttribute('data-vendedora-id');
           if (!vid) return;
-          const cbx = trEl.querySelector('input[type=checkbox]');
-          const inputs = trEl.querySelectorAll('input[type=text]');
-          const inPant = inputs[0];
-          const inBA = inputs[1];
-          const inAL = inputs[2];
-          const inPg = inputs[3];
-          const inTB = inputs[4];
-          const ativo = !!(cbx && cbx.checked);
+          function q(field) {
+            return trEl.querySelector('input[data-field="' + field + '"]');
+          }
+          const inAL = q('analiseLiquido');
+          global.MaycredData.upsertMeta({
+            vendedoraId: vid,
+            mes: mes2,
+            metaProducaoTotal: parseMoneyBR(q('metaVol') && q('metaVol').value),
+          });
           map[vid] = {
-            ativo,
-            prodMesAnterior: ativo ? parseMoneyBR(inPant && inPant.value) : undefined,
-            brutoAnalise: ativo ? parseMoneyBR(inBA && inBA.value) : undefined,
-            analiseLiquido: ativo && inAL && String(inAL.value).trim() !== '' ? parseMoneyBR(inAL.value) : undefined,
-            pago: ativo ? parseMoneyBR(inPg && inPg.value) : undefined,
-            totalBruto: ativo ? parseMoneyBR(inTB && inTB.value) : undefined,
+            ativo: true,
+            brutoAnalise: parseMoneyBR(q('brutoAnalise') && q('brutoAnalise').value),
+            analiseLiquido:
+              inAL && String(inAL.value).trim() !== '' ? parseMoneyBR(inAL.value) : undefined,
+            pago: parseMoneyBR(q('pago') && q('pago').value),
+            totalBruto: parseMoneyBR(q('totalBruto') && q('totalBruto').value),
           };
         });
         global.MaycredData.setProducaoManualMes(mes2, map);
-        toast('Planilha salva. O dashboard usa estes valores nas linhas marcadas como manual.', 'success');
+        toast('Planilha e metas salvas. O dashboard usa estes valores.', 'success');
         if (global.MaycredApp && typeof global.MaycredApp.refreshCurrent === 'function') {
           global.MaycredApp.refreshCurrent();
         }

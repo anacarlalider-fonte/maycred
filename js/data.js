@@ -164,12 +164,12 @@
    * @property {Promotora[]} promotoras
    * @property {TabelaBanco[]} tabelas
    * @property {Record<string, Record<string, boolean>>} permissoesPerfil - telas por perfil ADM/LIDER (Venda não usa estas rotas)
-   * @property {Record<string, Record<string, ProducaoManualLinha>>} [producaoManual] - YYYY-MM → vendedoraId → valores da planilha (substituem soma de propostas/lançamentos quando ativo)
+   * @property {Record<string, Record<string, ProducaoManualLinha>>} [producaoManual] - YYYY-MM → vendedoraId → valores da planilha (substituem soma de propostas/lançamentos quando existe linha para a vendedora)
    */
 
   /**
    * @typedef {Object} ProducaoManualLinha
-   * @property {boolean} ativo
+   * @property {boolean} [ativo] - legado; sempre tratado como true ao normalizar
    * @property {number} [brutoAnalise] - bruto em análise (R$)
    * @property {number} [analiseLiquido] - rentabilidade em análise (R$); se omitido, usa brutoAnalise × taxa do produto
    * @property {number} [pago] - rentabilidade paga (R$)
@@ -656,7 +656,7 @@
       return Number.isFinite(n) ? n : undefined;
     }
     return {
-      ativo: !!row.ativo,
+      ativo: true,
       brutoAnalise: num('brutoAnalise'),
       analiseLiquido: num('analiseLiquido'),
       pago: num('pago'),
@@ -677,8 +677,7 @@
       const bo = /** @type {Record<string, unknown>} */ (block);
       out[mes] = {};
       Object.keys(bo).forEach(function (vid) {
-        const n = normalizeProducaoManualLinha(bo[vid]);
-        if (n.ativo) out[mes][vid] = n;
+        out[mes][vid] = normalizeProducaoManualLinha(bo[vid]);
       });
       if (Object.keys(out[mes]).length === 0) delete out[mes];
     });
@@ -1314,7 +1313,7 @@
   }
 
   /**
-   * Grava a planilha manual de produção do mês (por vendedora). Só persistem linhas com `ativo: true`.
+   * Grava a planilha de produção do mês (por vendedora). Toda linha enviada é persistida.
    * @param {string} mes - YYYY-MM
    * @param {Record<string, Record<string, unknown>>} map
    */
@@ -1323,8 +1322,7 @@
     if (!cache.producaoManual) cache.producaoManual = {};
     const next = {};
     Object.keys(map || {}).forEach(function (vid) {
-      const n = normalizeProducaoManualLinha(map[vid]);
-      if (n.ativo) next[String(vid)] = n;
+      next[String(vid)] = normalizeProducaoManualLinha(map[vid]);
     });
     if (Object.keys(next).length === 0) delete cache.producaoManual[m];
     else cache.producaoManual[m] = next;

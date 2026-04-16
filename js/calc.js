@@ -7,11 +7,12 @@
    * @param {string} mes
    * @param {string} vendedoraId
    */
-  function readProducaoManualAtivo(bundle, mes, vendedoraId) {
+  /** Linha da planilha de produção do mês (se existir chave, vale o preenchimento manual). */
+  function readProducaoManualRow(bundle, mes, vendedoraId) {
     const pm = bundle && bundle.producaoManual && typeof bundle.producaoManual === 'object' ? bundle.producaoManual[String(mes)] : null;
     if (!pm) return null;
     const row = pm[String(vendedoraId)];
-    if (!row || !row.ativo) return null;
+    if (!row || typeof row !== 'object') return null;
     return row;
   }
 
@@ -107,7 +108,7 @@
       }
     }
 
-    const manual = readProducaoManualAtivo(bundle, mes, vendedora.id);
+    const manual = readProducaoManualRow(bundle, mes, vendedora.id);
     if (manual) {
       const taxa = taxaComissaoVendedora(vendedora, comissaoPort, comissaoEntrante);
       const tb = typeof manual.totalBruto === 'number' && !Number.isNaN(manual.totalBruto) ? manual.totalBruto : 0;
@@ -323,7 +324,7 @@
       let nOpsProducaoV =
         lancs.filter((l) => l.tipo === 'producao').length +
         opsList.filter((o) => o.vendedoraId === v.id && o.mes === mes).length;
-      if (readProducaoManualAtivo(bundle, mes, v.id) && (row.producaoBruta > 0 || row.total > 0)) {
+      if (readProducaoManualRow(bundle, mes, v.id) && (row.producaoBruta > 0 || row.total > 0)) {
         nOpsProducaoV = Math.max(1, nOpsProducaoV);
       }
       linhas.push({ vendedora: v, meta, lancamentos: lancs, row, nOpsProducao: nOpsProducaoV });

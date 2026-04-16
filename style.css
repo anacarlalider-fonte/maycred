@@ -1207,6 +1207,21 @@ pre,
   margin: 0;
 }
 
+.ui-producao-lede {
+  margin: 0 0 1.1rem;
+  max-width: 54rem;
+  font-size: 0.875rem;
+  line-height: 1.62;
+  color: #cbd5e1;
+  font-weight: 400;
+}
+
+.ui-producao-toolbar .ui-producao-btn-save {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 16px rgba(14, 165, 233, 0.22);
+}
+
 .ui-producao-resumo-por-produto {
   margin-top: 2rem;
 }
@@ -1431,8 +1446,9 @@ pre,
   min-width: 70rem;
   table-layout: auto;
   border-collapse: separate;
+  font-size: 0.8125rem;
   /* Entre colunas; o “vão” escuro entre estágios usa também border-left (--producao-stage-gap) */
-  border-spacing: 7px 5px;
+  border-spacing: 5px 4px;
   --producao-stage-gap: 8px;
   /* Bloco Time (sticky): colunas mais estreitas = menos vão entre Vendedora / DISC / Produto */
   --producao-sticky-w1: 11.75rem;
@@ -1543,8 +1559,20 @@ pre,
   white-space: nowrap;
 }
 
-/* % na planilha: leitura forte sobre fundo de fase */
-.ui-table--producao-planilha tbody tr > td:nth-child(5).ui-producao-pct-cell,
+.ui-table--producao-planilha thead .ui-producao-head-cols th {
+  font-family: var(--font);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.045em;
+}
+
+.ui-table--producao-planilha tbody tr > td,
+.ui-table--producao-planilha thead .ui-producao-head-cols th {
+  padding-top: 0.42rem;
+  padding-bottom: 0.42rem;
+}
+
+/* % na planilha: leitura forte sobre fundo de fase (índices após Objetivo = 3 col.) */
 .ui-table--producao-planilha tbody tr > td:nth-child(8).ui-producao-pct-cell {
   color: #0f172a;
   font-weight: 600;
@@ -1667,10 +1695,11 @@ pre,
   color: var(--text);
 }
 
-/* Objetivo: azul-cinza (contraste com amarelo/verde; troque se quiser outro tom) */
+/* Objetivo: faixa legível no tema escuro */
 .ui-table--producao-planilha .ui-producao-phase-head--objetivo {
-  background: rgba(56, 189, 248, 0.22);
-  color: var(--text);
+  background: rgba(56, 189, 248, 0.3);
+  color: #f0f9ff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .ui-table--producao-planilha .ui-producao-phase-head--analise {
@@ -1705,8 +1734,9 @@ pre,
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(4),
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(5),
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(6) {
-  background: rgba(56, 189, 248, 0.18);
-  color: var(--text2);
+  background: rgba(56, 189, 248, 0.32);
+  color: #f0f9ff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(7),
@@ -1742,7 +1772,8 @@ pre,
   text-align: center;
 }
 
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(3) {
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(3),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(6) {
   text-align: center;
 }
 
@@ -1759,7 +1790,9 @@ pre,
 .ui-table--producao-planilha tbody tr > td:nth-child(4),
 .ui-table--producao-planilha tbody tr > td:nth-child(5),
 .ui-table--producao-planilha tbody tr > td:nth-child(6) {
-  background: rgba(56, 189, 248, 0.1);
+  background: rgba(56, 189, 248, 0.16);
+  color: #f1f5f9;
+  vertical-align: middle;
 }
 
 .ui-table--producao-planilha tbody tr > td:nth-child(7),
@@ -1791,10 +1824,16 @@ pre,
   font-weight: 600;
 }
 
-/* Metas do Objetivo: só leitura, puxadas de Config → Metas do mês */
-.ui-table--producao-planilha tbody tr > td.ui-producao-meta-auto {
-  color: #0c1220;
+/* Objetivo: metas automáticas — texto claro sobre faixa azul */
+.ui-table--producao-planilha tbody tr > td.ui-producao-meta-auto,
+.ui-table--producao-planilha tbody tr > td.ui-producao-meta-tx {
+  color: #f8fafc;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-table--producao-planilha tbody tr > td.ui-producao-meta-tx {
+  font-size: 0.8125rem;
 }
 
 /* Rodapé TOTAL GERAL: 1ª célula = ident (colspan 3); 2–4 objetivo; 5–7 análise; 8–10 averb.; 11–13 total */
@@ -1878,18 +1917,6 @@ pre,
 }
 
 /* Inputs da planilha: fundo claro opaco + texto escuro (contraste em fases coloridas) */
-.ui-table--producao-planilha tbody tr > td:nth-child(4) .ui-input,
-.ui-table--producao-planilha tbody tr > td:nth-child(6) .ui-input {
-  background: rgba(224, 242, 254, 0.95);
-  color: #0c1220;
-  border-color: rgba(14, 116, 144, 0.45);
-}
-
-.ui-table--producao-planilha tbody tr > td:nth-child(4) .ui-input::placeholder,
-.ui-table--producao-planilha tbody tr > td:nth-child(6) .ui-input::placeholder {
-  color: #475569;
-}
-
 .ui-table--producao-planilha tbody tr > td:nth-child(7) .ui-input,
 .ui-table--producao-planilha tbody tr > td:nth-child(9) .ui-input {
   background: rgba(254, 249, 231, 0.96);
@@ -1914,13 +1941,6 @@ pre,
   color: #166534;
 }
 
-.ui-table--producao-planilha tbody tr > td:nth-child(4) .ui-input:focus,
-.ui-table--producao-planilha tbody tr > td:nth-child(6) .ui-input:focus {
-  background: rgba(255, 255, 255, 0.98);
-  border-color: rgba(2, 132, 199, 0.65);
-  color: #0c1220;
-}
-
 .ui-table--producao-planilha tbody tr > td:nth-child(7) .ui-input:focus,
 .ui-table--producao-planilha tbody tr > td:nth-child(9) .ui-input:focus {
   background: #fffbeb;
@@ -1937,6 +1957,12 @@ pre,
 
 .ui-table--producao-planilha .ui-producao-input-cell {
   vertical-align: middle;
+}
+
+.ui-table--producao-planilha .ui-producao-input-cell .ui-input {
+  padding: 0.38rem 0.52rem;
+  min-height: 2.05rem;
+  line-height: 1.25;
 }
 
 .ui-table--producao-planilha .ui-producao-soma-nao-editavel {

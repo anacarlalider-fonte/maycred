@@ -358,8 +358,8 @@
     page.appendChild(
       el(
         'p',
-        'ui-muted',
-        'Meta produção e meta rentabilidade na coluna Objetivo vêm automaticamente de Configurações → Metas do mês (mês ativo). Em cada fase editável: valores em R$, taxa receita ÷ produção (%), e receita. Total produção e total receita são só leitura. Ao salvar, grava só a planilha de produção (análise / averbada / pago); altere metas na aba Metas do mês.',
+        'ui-producao-lede',
+        'Na coluna Objetivo, meta de averbação, meta de rentabilidade e a taxa média vêm de Configurações → Metas do mês. Edite aqui só as fases Em análise, Averbada e totais calculados. Salvar grava a planilha do mês; metas continuam na aba Metas do mês.',
       ),
     );
 
@@ -369,7 +369,7 @@
     const inpData = el('input', 'ui-input');
     inpData.type = 'date';
     inpData.title = 'Referência da conferência (como na planilha).';
-    const btnSave = el('button', 'ui-btn ui-btn--primary', 'Salvar planilha');
+    const btnSave = el('button', 'ui-btn ui-btn--primary ui-producao-btn-save', 'Salvar planilha');
     btnSave.type = 'button';
     toolbar.appendChild(lblData);
     lblData.appendChild(inpData);
@@ -480,9 +480,9 @@
         'Vendedora',
         'DISC',
         'Produto',
-        'Meta produção (R$)',
-        '% (rent./prod.)',
+        'Meta averbação (R$)',
         'Meta rentabilidade (R$)',
+        'Média comissão (tx)',
         'Produção em análise (R$)',
         '% (rec./prod.)',
         'Receita em análise (R$)',
@@ -504,7 +504,7 @@
 
       const agg = {
         PORT: {
-          metaVol: 0,
+          metaAverb: 0,
           metaRent: 0,
           volAn: 0,
           rentAn: 0,
@@ -514,7 +514,7 @@
           rentTot: 0,
         },
         ENTRANTE: {
-          metaVol: 0,
+          metaAverb: 0,
           metaRent: 0,
           volAn: 0,
           rentAn: 0,
@@ -529,12 +529,11 @@
         const v = R.v;
         const row = R.row;
         const mt = global.MaycredCalc.parseMetaTargets(R.meta);
-        const metaVol = mt.metaVol;
         const metaRent = mt.metaRent;
         const man = pm[v.id] && typeof pm[v.id] === 'object' ? pm[v.id] : null;
 
         const g = v.produto === 'ENTRANTE' ? agg.ENTRANTE : agg.PORT;
-        g.metaVol += metaVol;
+        g.metaAverb += mt.metaAverb;
         g.metaRent += metaRent;
         g.volAn += row.producaoBrutaAnalise;
         g.rentAn += row.analise;
@@ -566,15 +565,22 @@
         tdProd.appendChild(chip);
         tr.appendChild(tdProd);
 
-        const tdMetaVol = moneyCellRead('Meta produção (R$)', metaVol);
-        tdMetaVol.classList.add('ui-producao-meta-auto');
-        tdMetaVol.title = 'Definido em Configurações → Metas do mês (meta produção total).';
-        tr.appendChild(tdMetaVol);
-        tr.appendChild(pctReceitaSobreProducao('% meta (rent./prod.)', metaRent, metaVol));
+        const tdMetaAverb = moneyCellRead('Meta averbação (R$)', mt.metaAverb);
+        tdMetaAverb.classList.add('ui-producao-meta-auto');
+        tdMetaAverb.title = 'Configurações → Metas do mês.';
+        tr.appendChild(tdMetaAverb);
         const tdMetaRent = moneyCellRead('Meta rentabilidade (R$)', metaRent);
         tdMetaRent.classList.add('ui-producao-meta-auto');
-        tdMetaRent.title = 'Definido em Configurações → Metas do mês.';
+        tdMetaRent.title = 'Configurações → Metas do mês.';
         tr.appendChild(tdMetaRent);
+        const tdMetaTx = el('td', 'ui-mono ui-producao-pct-cell ui-producao-meta-tx');
+        tdMetaTx.setAttribute('data-label', 'Média comissão (tx)');
+        tdMetaTx.title = 'Meta rentabilidade ÷ meta averbação (Metas do mês).';
+        const maTx = Number(mt.metaAverb);
+        const mrTx = Number(metaRent);
+        if (!(maTx > 0) || !Number.isFinite(mrTx)) tdMetaTx.textContent = '—';
+        else tdMetaTx.textContent = (Math.round((mrTx / maTx) * 100 * 100) / 100) + '%';
+        tr.appendChild(tdMetaTx);
 
         const tdBA = el('td', 'ui-producao-input-cell');
         tdBA.setAttribute('data-label', 'Produção em análise (R$)');
@@ -657,7 +663,7 @@
         tbody.appendChild(tr);
       });
 
-      const fMetaVol = agg.PORT.metaVol + agg.ENTRANTE.metaVol;
+      const fMetaAverb = agg.PORT.metaAverb + agg.ENTRANTE.metaAverb;
       const fMetaRent = agg.PORT.metaRent + agg.ENTRANTE.metaRent;
       const fVolAn = agg.PORT.volAn + agg.ENTRANTE.volAn;
       const fRentAn = agg.PORT.rentAn + agg.ENTRANTE.rentAn;
@@ -670,9 +676,16 @@
       const tdTotLab = el('td', 'ui-producao-total-label', 'TOTAL GERAL');
       tdTotLab.colSpan = 3;
       fr.appendChild(tdTotLab);
-      fr.appendChild(moneyCellRead('Σ Meta produção', fMetaVol));
-      fr.appendChild(pctReceitaSobreProducao('Σ % meta', fMetaRent, fMetaVol));
+      fr.appendChild(moneyCellRead('Σ Meta averbação', fMetaAverb));
       fr.appendChild(moneyCellRead('Σ Meta rentabilidade', fMetaRent));
+      const tdFootTx = el('td', 'ui-mono ui-producao-pct-cell ui-producao-meta-tx');
+      tdFootTx.setAttribute('data-label', 'Σ média comissão (tx)');
+      if (fMetaAverb > 0 && Number.isFinite(fMetaRent)) {
+        tdFootTx.textContent = (Math.round((fMetaRent / fMetaAverb) * 100 * 100) / 100) + '%';
+      } else {
+        tdFootTx.textContent = '—';
+      }
+      fr.appendChild(tdFootTx);
       fr.appendChild(moneyCellRead('Σ Produção análise', fVolAn));
       fr.appendChild(pctReceitaSobreProducao('Σ % análise', fRentAn, fVolAn));
       fr.appendChild(moneyCellRead('Σ Receita análise', fRentAn));
@@ -708,9 +721,11 @@
               : 'ui-producao-row--total-resumo',
         );
         tr.appendChild(el('td', 'ui-mono', titulo));
-        tr.appendChild(moneyCellRead('META pr.', a.metaVol));
-        tr.appendChild(pctReceitaSobreProducao('% meta', a.metaRent, a.metaVol));
+        tr.appendChild(moneyCellRead('META averb.', a.metaAverb));
         tr.appendChild(moneyCellRead('META rent.', a.metaRent));
+        tr.appendChild(
+          pctReceitaSobreProducao('% meta (rent./averb.)', a.metaRent, a.metaAverb),
+        );
         tr.appendChild(moneyCellRead('Pr. análise', a.volAn));
         tr.appendChild(pctReceitaSobreProducao('% análise', a.rentAn, a.volAn));
         tr.appendChild(moneyCellRead('Rec. análise', a.rentAn));
@@ -728,9 +743,9 @@
       const hr2 = el('tr', 'ui-producao-resumo-prod-head');
       [
         '',
-        'Meta produção',
-        '%',
+        'Meta averb.',
         'Meta rent.',
+        'Tx meta',
         'Pr. análise',
         '%',
         'Rec. análise',
@@ -749,7 +764,7 @@
       tb2.appendChild(subLinhaFases('PORT', agg.PORT));
       tb2.appendChild(subLinhaFases('ENTRANTE', agg.ENTRANTE));
       const totAgg = {
-        metaVol: agg.PORT.metaVol + agg.ENTRANTE.metaVol,
+        metaAverb: agg.PORT.metaAverb + agg.ENTRANTE.metaAverb,
         metaRent: agg.PORT.metaRent + agg.ENTRANTE.metaRent,
         volAn: agg.PORT.volAn + agg.ENTRANTE.volAn,
         rentAn: agg.PORT.rentAn + agg.ENTRANTE.rentAn,

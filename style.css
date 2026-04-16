@@ -144,6 +144,29 @@ pre,
   text-overflow: ellipsis;
 }
 
+.app-header__gestor-vend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+  max-width: 14rem;
+}
+
+.app-header__gestor-vend-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text3);
+}
+
+.app-header__gestor-select {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.5rem;
+  width: 100%;
+  max-width: 14rem;
+}
+
 .app-header__mes {
   font-family: var(--mono);
   font-size: 0.8rem;

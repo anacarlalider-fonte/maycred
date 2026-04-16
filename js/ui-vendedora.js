@@ -152,7 +152,7 @@
   }
 
   function renderClientes(container) {
-    const vid = global.MaycredAuth.getVendedoraIdAtiva();
+    const vid = global.MaycredAuth.getVendedoraIdOperacional();
     if (!vid) {
       container.appendChild(el('p', 'ui-muted', 'Sessão inválida.'));
       return;
@@ -344,7 +344,7 @@
   }
 
   function renderPropostas(container) {
-    const vid = global.MaycredAuth.getVendedoraIdAtiva();
+    const vid = global.MaycredAuth.getVendedoraIdOperacional();
     if (!vid) {
       container.appendChild(el('p', 'ui-muted', 'Sessão inválida.'));
       return;
@@ -1170,7 +1170,7 @@
   }
 
   function renderPipeline(container) {
-    const vid = global.MaycredAuth.getVendedoraIdAtiva();
+    const vid = global.MaycredAuth.getVendedoraIdOperacional();
     if (!vid) {
       container.appendChild(el('p', 'ui-muted', 'Sessão inválida.'));
       return;
@@ -1782,7 +1782,7 @@
   }
 
   function renderSimulador(container) {
-    const vid = global.MaycredAuth.getVendedoraIdAtiva();
+    const vid = global.MaycredAuth.getVendedoraIdOperacional();
     if (!vid) {
       container.appendChild(el('p', 'ui-muted', 'Sessão inválida.'));
       return;
@@ -1878,11 +1878,15 @@
   }
 
   function paint(container, tela) {
-    const vid = global.MaycredAuth.getVendedoraIdAtiva && global.MaycredAuth.getVendedoraIdAtiva();
-    if (!global.MaycredAuth.isVendedora || !global.MaycredAuth.isVendedora() || !vid) {
+    const vid = global.MaycredAuth.getVendedoraIdOperacional && global.MaycredAuth.getVendedoraIdOperacional();
+    if (!vid) {
       clear(container);
       container.appendChild(
-        el('p', 'ui-muted', 'Entre com usuário de correspondente para ver esta área. O usuário gestor não tem pipeline próprio.'),
+        el(
+          'p',
+          'ui-muted',
+          'Cadastre pelo menos um correspondente em Configurações. Se você é gestor, escolha o correspondente no cabeçalho.',
+        ),
       );
       return;
     }

@@ -78,19 +78,17 @@
       return;
     }
 
-    if (
-      MaycredAuth.hasPainelGestor() &&
-      MaycredAuth.isVendedora() &&
-      tela === 'vendPipeline'
-    ) {
+    const telasVendMod =
+      typeof MaycredVendUI !== 'undefined' && MaycredVendUI.TELAS ? MaycredVendUI.TELAS : [];
+    if (MaycredAuth.hasPainelGestor() && telasVendMod.indexOf(tela) >= 0) {
       safeDestroyCharts();
       const content = document.getElementById('app-content');
       if (!content || !MaycredAuth.isLoggedIn()) return;
-      telaAtual = 'vendPipeline';
+      telaAtual = tela;
       document.querySelectorAll('.app-nav__btn').forEach(function (b) {
-        b.classList.toggle('app-nav__btn--active', b.getAttribute('data-tela') === 'vendPipeline');
+        b.classList.toggle('app-nav__btn--active', b.getAttribute('data-tela') === tela);
       });
-      MaycredVendUI.paint(content, 'vendPipeline');
+      MaycredVendUI.paint(content, tela);
       closeSidebarMobile();
       return;
     }
@@ -346,6 +344,58 @@
     profile.className = 'app-header__profile';
     profile.textContent = MaycredAuth.getNomePerfilAtivo();
 
+    if (MaycredAuth.isGestor()) {
+      const wrapG = document.createElement('div');
+      wrapG.className = 'app-header__gestor-vend';
+      const lab = document.createElement('label');
+      lab.className = 'app-header__gestor-vend-label';
+      lab.setAttribute('for', 'app-header-gestor-vid');
+      lab.textContent = 'Correspondente';
+      const selG = document.createElement('select');
+      selG.id = 'app-header-gestor-vid';
+      selG.className = 'ui-input app-header__gestor-select';
+      selG.title =
+        'Dados de Desempenho, Pipeline, Clientes e Propostas passam a ser deste cadastro (visão do gestor).';
+      function refillGestorSelect() {
+        selG.innerHTML = '';
+        const vs = MaycredData.getState().vendedoras || [];
+        vs.forEach(function (v) {
+          const o = document.createElement('option');
+          o.value = v.id;
+          o.textContent = v.nome || v.id;
+          selG.appendChild(o);
+        });
+        const op = MaycredAuth.getVendedoraIdOperacional();
+        if (op && selG.options.length) {
+          let ix = -1;
+          for (let i = 0; i < selG.options.length; i++) {
+            if (selG.options[i].value === op) {
+              ix = i;
+              break;
+            }
+          }
+          if (ix >= 0) selG.selectedIndex = ix;
+          else {
+            selG.selectedIndex = 0;
+            MaycredAuth.setGestorVendedoraContext(selG.value);
+          }
+        } else if (selG.options.length) {
+          selG.selectedIndex = 0;
+          MaycredAuth.setGestorVendedoraContext(selG.value);
+        }
+      }
+      refillGestorSelect();
+      selG.addEventListener('change', function () {
+        MaycredAuth.setGestorVendedoraContext(selG.value);
+        if (global.MaycredApp && typeof global.MaycredApp.refreshCurrent === 'function') {
+          global.MaycredApp.refreshCurrent();
+        }
+      });
+      wrapG.appendChild(lab);
+      wrapG.appendChild(selG);
+      header.appendChild(wrapG);
+    }
+
     const mes = document.createElement('div');
     mes.className = 'app-header__mes';
     mes.id = 'app-header-mes-wrap';
@@ -440,9 +490,10 @@
           nav.appendChild(navBtn(pair[0], pair[1]));
         });
       }
-      if (MaycredAuth.isVendedora()) {
-        nav.appendChild(navBtn('vendPipeline', 'Pipeline'));
-      }
+      nav.appendChild(navHint('Correspondente'));
+      ROTAS_VENDEDORA.forEach(function (pair) {
+        nav.appendChild(navBtn(pair[0], pair[1]));
+      });
       if (MaycredAuth.rotaPermitida('configuracoes')) {
         nav.appendChild(navHint('Equipe e configurações'));
         nav.appendChild(navBtn('configuracoes', 'Configurações'));
@@ -510,14 +561,15 @@
         navigateVendedora(telaVendedoraAtual);
         return;
       }
+      const tv = typeof MaycredVendUI !== 'undefined' && MaycredVendUI.TELAS ? MaycredVendUI.TELAS : [];
       if (
-        telaAtual === 'vendPipeline' &&
-        MaycredAuth.hasPainelGestor() &&
-        MaycredAuth.isVendedora()
+        telaAtual &&
+        tv.indexOf(telaAtual) >= 0 &&
+        MaycredAuth.hasPainelGestor()
       ) {
         const content = document.getElementById('app-content');
         if (content && typeof MaycredVendUI !== 'undefined') {
-          MaycredVendUI.paint(content, 'vendPipeline');
+          MaycredVendUI.paint(content, telaAtual);
         }
         return;
       }

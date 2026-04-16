@@ -1864,7 +1864,9 @@
   /** @param {HTMLElement} container */
   function renderDashboardVendedora(container) {
     clear(container);
-    const vid = global.MaycredAuth.getVendedoraIdAtiva();
+    const vid = global.MaycredAuth.getVendedoraIdOperacional
+      ? global.MaycredAuth.getVendedoraIdOperacional()
+      : global.MaycredAuth.getVendedoraIdAtiva();
     if (!vid) {
       container.appendChild(el('p', 'ui-muted', 'Sessão inválida. Faça login novamente.'));
       return;

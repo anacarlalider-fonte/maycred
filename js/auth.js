@@ -3,6 +3,8 @@
  */
 (function (global) {
   const STORAGE_KEY = 'maycred-sessao';
+  /** Contexto de correspondente quando o login é só gestor (sem vendedoraId na sessão). */
+  const GESTOR_VID_KEY = 'maycred-gestor-vid';
 
   /**
    * @param {string} plain
@@ -79,6 +81,9 @@
 
   function logout() {
     sessionStorage.removeItem(STORAGE_KEY);
+    try {
+      sessionStorage.removeItem(GESTOR_VID_KEY);
+    } catch (_) {}
   }
 
   function isGestor() {
@@ -143,6 +148,46 @@
     return null;
   }
 
+  /** @returns {string} */
+  function getGestorVendedoraContext() {
+    try {
+      const raw = sessionStorage.getItem(GESTOR_VID_KEY);
+      return raw ? String(raw) : '';
+    } catch {
+      return '';
+    }
+  }
+
+  /** @param {string} [id] - omitir limpa o contexto */
+  function setGestorVendedoraContext(id) {
+    try {
+      if (!id) sessionStorage.removeItem(GESTOR_VID_KEY);
+      else sessionStorage.setItem(GESTOR_VID_KEY, String(id));
+    } catch (_) {}
+  }
+
+  function getPrimeiraVendedoraId() {
+    if (typeof global.MaycredData === 'undefined') return null;
+    const list = global.MaycredData.getState().vendedoras;
+    if (!Array.isArray(list) || !list.length) return null;
+    const v0 = list[0];
+    return v0 && v0.id ? String(v0.id) : null;
+  }
+
+  /**
+   * ID do correspondente para telas de campo: sessão vendedora ou gestor com contexto / primeiro cadastro.
+   * @returns {string|null}
+   */
+  function getVendedoraIdOperacional() {
+    if (isVendedora()) return getVendedoraIdAtiva();
+    if (isGestor()) {
+      const stored = getGestorVendedoraContext();
+      if (stored && global.MaycredData && global.MaycredData.getVendedoraById(stored)) return stored;
+      return getPrimeiraVendedoraId();
+    }
+    return null;
+  }
+
   function isLoggedIn() {
     return readSessao() !== null;
   }
@@ -175,6 +220,9 @@
     rotaPermitida,
     getPerfil,
     getVendedoraIdAtiva,
+    getGestorVendedoraContext,
+    setGestorVendedoraContext,
+    getVendedoraIdOperacional,
     isLoggedIn,
     getNomePerfilAtivo,
   };

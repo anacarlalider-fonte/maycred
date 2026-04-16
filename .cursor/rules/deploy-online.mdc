@@ -1,0 +1,17 @@
+---
+description: Publicar maycred-metas na Vercel após alterações (git push main)
+globs: maycred-metas/**/*
+alwaysApply: false
+---
+
+# Deploy online (Vercel)
+
+Este repositório dispara deploy em produção com **push na branch `main`** (GitHub Actions em `.github/workflows/deploy-vercel.yml` e/ou integração Git da Vercel).
+
+Ao concluir mudanças em HTML, JS ou CSS deste app:
+
+1. Atualize o `?v=` em `index.html` (e em `style.css` se necessário) para cache bust.
+2. Execute na raiz do repositório git (pasta `maycred-metas`): `git add`, `git commit` com mensagem clara em português, `git push origin main`.
+3. Confirme que o push subiu; o deploy segue nos logs do GitHub Actions ou do painel Vercel.
+
+Não peça ao usuário para publicar manualmente se o ambiente tiver rede e git configurados — faça o push após o trabalho, salvo se o usuário pedir o contrário.

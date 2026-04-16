@@ -8,23 +8,13 @@
   const PRESET_COMISSAO_PORT = 0.4;
   const PRESET_COMISSAO_ENTRANTE = 0.25;
 
-  /** Rotas do menu gestor (chave = `data-tela`; manutenção engloba lancamentos/operacoes). */
-  const ROTAS_PERMISSAO = [
-    'dashboard',
-    'producao',
-    'propostasCadastro',
-    'propostasManutencao',
-    'tabelas',
-    'configuracoes',
-  ];
+  /** Rotas do menu gestor (chave = `data-tela`). */
+  const ROTAS_PERMISSAO = ['dashboard', 'producao', 'configuracoes'];
 
   /** @type {Record<string, string>} */
   const ROTAS_PERMISSAO_LABEL = {
     dashboard: 'Dashboard',
     producao: 'Produção',
-    propostasCadastro: 'Cadastro de propostas',
-    propostasManutencao: 'Manutenção de propostas',
-    tabelas: 'Parceiros e tabelas',
     configuracoes: 'Configurações',
   };
 
@@ -42,9 +32,6 @@
     const lid = mapRotasTodas(false);
     lid.dashboard = true;
     lid.producao = true;
-    lid.propostasCadastro = true;
-    lid.propostasManutencao = true;
-    lid.tabelas = true;
     lid.configuracoes = false;
     return {
       ADM: mapRotasTodas(true),
@@ -816,7 +803,7 @@
   /** @param {string} rota */
   function canonicalRotaPerm(rota) {
     const r = String(rota || '');
-    if (r === 'lancamentos' || r === 'operacoes') return 'propostasManutencao';
+    if (r === 'lancamentos' || r === 'operacoes') return 'producao';
     return r;
   }
 

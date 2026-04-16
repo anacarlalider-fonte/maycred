@@ -64,14 +64,7 @@
   }
 
   function primeiraRotaLiberada() {
-    const ordem = [
-      'dashboard',
-      'producao',
-      'propostasCadastro',
-      'propostasManutencao',
-      'tabelas',
-      'configuracoes',
-    ];
+    const ordem = ['dashboard', 'producao', 'configuracoes'];
     for (let i = 0; i < ordem.length; i++) {
       if (MaycredAuth.rotaPermitida(ordem[i])) return ordem[i];
     }
@@ -122,39 +115,11 @@
       case 'producao':
         MaycredUI.renderProducao(content);
         break;
-      case 'propostasCadastro':
-        if (typeof MaycredUI.renderPropostasCadastro === 'function') {
-          MaycredUI.renderPropostasCadastro(content);
-        } else if (typeof MaycredUI.renderLancamentos === 'function') {
-          MaycredUI.renderLancamentos(content);
-        } else {
-          MaycredUI.renderOperacoes(content);
-        }
-        break;
-      case 'propostasManutencao':
-      case 'lancamentos':
-      case 'operacoes':
-        if (typeof MaycredUI.renderPropostasManutencao === 'function') {
-          MaycredUI.renderPropostasManutencao(content);
-        } else if (typeof MaycredUI.renderLancamentos === 'function') {
-          MaycredUI.renderLancamentos(content);
-        } else {
-          MaycredUI.renderOperacoes(content);
-        }
-        break;
       case 'configuracoes':
         if (typeof MaycredUI.renderModuloConfiguracoes === 'function') {
           MaycredUI.renderModuloConfiguracoes(content);
         } else {
           MaycredUI.renderVendedoras(content);
-        }
-        break;
-      case 'tabelas':
-        if (typeof MaycredUI.renderModuloTabelasBancos === 'function') {
-          MaycredUI.renderModuloTabelasBancos(content);
-        } else {
-          content.innerHTML =
-            '<p class="ui-muted">Módulo de tabelas não carregado. Verifique se <code>ui-gestor.js</code> está incluído.</p>';
         }
         break;
       default:
@@ -169,11 +134,7 @@
 
     const mesWrap = document.getElementById('app-header-mes-wrap');
     if (mesWrap && MaycredAuth.hasPainelGestor()) {
-      const ocultarMesNoTopo =
-        telaIr === 'propostasManutencao' ||
-        telaIr === 'lancamentos' ||
-        telaIr === 'operacoes';
-      mesWrap.style.display = ocultarMesNoTopo ? 'none' : '';
+      mesWrap.style.display = '';
     }
 
     closeSidebarMobile();
@@ -375,7 +336,7 @@
       mesInp.type = 'month';
       mesInp.className = 'ui-input app-header__mes-input';
       mesInp.title =
-        'Mês de referência (dashboard, produção, cadastro, tabelas, metas e dias úteis). Na manutenção de propostas use o período na própria tela.';
+        'Mês de referência (dashboard, produção, metas do mês e dias úteis em Configurações).';
       mesInp.value = MaycredData.getState().config.mesAtual;
       mesInp.id = 'app-header-mes';
       mesInp.addEventListener('change', function () {
@@ -452,8 +413,6 @@
       const operar = [
         ['dashboard', 'Dashboard'],
         ['producao', 'Produção'],
-        ['propostasCadastro', 'Cadastro de propostas'],
-        ['propostasManutencao', 'Manutenção de propostas'],
       ].filter(function (pair) {
         return MaycredAuth.rotaPermitida(pair[0]);
       });
@@ -462,10 +421,6 @@
         operar.forEach(function (pair) {
           nav.appendChild(navBtn(pair[0], pair[1]));
         });
-      }
-      if (MaycredAuth.rotaPermitida('tabelas')) {
-        nav.appendChild(navHint('Parceiros e tabelas'));
-        nav.appendChild(navBtn('tabelas', 'Parceiros e tabelas'));
       }
       if (MaycredAuth.rotaPermitida('configuracoes')) {
         nav.appendChild(navHint('Equipe e configurações'));

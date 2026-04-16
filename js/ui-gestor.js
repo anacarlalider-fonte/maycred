@@ -1574,11 +1574,10 @@
           bCan.style.display = op.status !== 'CANCELADO' ? 'inline-flex' : 'none';
 
           bEd.addEventListener('click', function () {
-            propostaEdicaoPendenteId = op.id;
-            if (global.MaycredApp && typeof global.MaycredApp.navigate === 'function') {
-              global.MaycredApp.navigate('propostasCadastro');
-            }
-            toast('Abrindo cadastro para editar esta proposta.', 'info');
+            toast(
+              'Cadastro/manutenção pelo menu gestor foi desativado. Para incluir ou alterar propostas, use o login da vendedora (aba Propostas).',
+              'info',
+            );
           });
 
           bAv.addEventListener('click', function () {

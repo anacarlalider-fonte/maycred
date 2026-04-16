@@ -1255,6 +1255,75 @@ pre,
   border-collapse: separate;
   /* Espaço entre blocos de fase (colunas) e um pouco entre linhas */
   border-spacing: 8px 6px;
+  /* Larguras aproximadas do bloco Identificação (sticky horizontal) */
+  --producao-sticky-w1: 16rem;
+  --producao-sticky-w2: 4.25rem;
+  --producao-sticky-w3: 7.75rem;
+}
+
+/* Bloco Identificação fixo ao rolar horizontalmente */
+.ui-table--producao-planilha thead .ui-producao-head-phases th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  min-width: calc(var(--producao-sticky-w1) + var(--producao-sticky-w2) + var(--producao-sticky-w3));
+  box-shadow: 6px 0 14px rgba(0, 0, 0, 0.35);
+}
+
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  min-width: var(--producao-sticky-w1);
+  box-shadow: 6px 0 12px rgba(0, 0, 0, 0.32);
+}
+
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(2) {
+  position: sticky;
+  left: var(--producao-sticky-w1);
+  z-index: 5;
+  min-width: var(--producao-sticky-w2);
+  box-shadow: 6px 0 12px rgba(0, 0, 0, 0.22);
+}
+
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(3) {
+  position: sticky;
+  left: calc(var(--producao-sticky-w1) + var(--producao-sticky-w2));
+  z-index: 5;
+  min-width: var(--producao-sticky-w3);
+  box-shadow: 8px 0 16px rgba(0, 0, 0, 0.35);
+}
+
+.ui-table--producao-planilha tbody tr > td:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: var(--producao-sticky-w1);
+  box-shadow: 6px 0 12px rgba(0, 0, 0, 0.28);
+}
+
+.ui-table--producao-planilha tbody tr > td:nth-child(2) {
+  position: sticky;
+  left: var(--producao-sticky-w1);
+  z-index: 2;
+  min-width: var(--producao-sticky-w2);
+  box-shadow: 6px 0 12px rgba(0, 0, 0, 0.2);
+}
+
+.ui-table--producao-planilha tbody tr > td:nth-child(3) {
+  position: sticky;
+  left: calc(var(--producao-sticky-w1) + var(--producao-sticky-w2));
+  z-index: 2;
+  min-width: var(--producao-sticky-w3);
+  box-shadow: 8px 0 16px rgba(0, 0, 0, 0.32);
+}
+
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  min-width: calc(var(--producao-sticky-w1) + var(--producao-sticky-w2) + var(--producao-sticky-w3));
+  box-shadow: 6px 0 14px rgba(0, 0, 0, 0.35);
 }
 
 .ui-producao-pct-cell {
@@ -1328,6 +1397,23 @@ pre,
     padding-bottom: 0.25rem;
     border-bottom: 1px solid var(--border);
     margin-bottom: 0.15rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .ui-table--producao-planilha thead .ui-producao-head-phases th:first-child,
+  .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(1),
+  .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(2),
+  .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(3),
+  .ui-table--producao-planilha tbody tr > td:nth-child(1),
+  .ui-table--producao-planilha tbody tr > td:nth-child(2),
+  .ui-table--producao-planilha tbody tr > td:nth-child(3),
+  .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(1) {
+    position: static;
+    left: auto;
+    min-width: 0;
+    box-shadow: none;
+    z-index: auto;
   }
 }
 

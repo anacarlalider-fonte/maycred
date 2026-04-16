@@ -1775,6 +1775,11 @@ pre,
   min-width: 28rem;
 }
 
+.ui-table--metas-dual .ui-inline-meta {
+  max-width: 11rem;
+  min-width: 8.5rem;
+}
+
 .ui-table--producao-planilha .ui-input--narrow {
   max-width: 7.5rem;
   min-width: 5rem;

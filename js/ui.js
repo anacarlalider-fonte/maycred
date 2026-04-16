@@ -139,6 +139,28 @@
     return Number.isFinite(n) ? n : 0;
   }
 
+  /** Input texto: exibe R$ + pt-BR no blur; leitura com `parseMoneyBR`. */
+  function wireMetaMoneyInput(inp) {
+    inp.classList.add('ui-input--money-br');
+    inp.type = 'text';
+    inp.inputMode = 'decimal';
+    inp.setAttribute('autocomplete', 'off');
+    inp.placeholder = 'R$ 0,00';
+    inp.addEventListener('blur', function () {
+      const t = String(inp.value || '').trim();
+      if (!t) {
+        inp.value = '';
+        return;
+      }
+      const n = parseMoneyBR(inp.value);
+      if (!(n > 0)) inp.value = '';
+      else inp.value = formatBRL(n);
+    });
+    inp.addEventListener('focus', function () {
+      if (String(inp.value || '').trim()) inp.select();
+    });
+  }
+
   function csvEscapeCell(val) {
     const t = String(val == null ? '' : val);
     if (/[;"\r\n]/.test(t)) return '"' + t.replace(/"/g, '""') + '"';
@@ -1511,12 +1533,10 @@
         tr.appendChild(el('td', null, v.nome));
         function inpMeta(field, val) {
           const inp = el('input', 'ui-input ui-inline-meta');
-          inp.type = 'number';
-          inp.step = '0.01';
-          inp.min = '0';
-          inp.value = val > 0 ? String(val) : '';
           inp.dataset.vid = v.id;
           inp.dataset.field = field;
+          if (val > 0) inp.value = formatBRL(val);
+          wireMetaMoneyInput(inp);
           const td = el('td', null);
           td.appendChild(inp);
           tr.appendChild(td);
@@ -1546,8 +1566,8 @@
         st2.vendedoras.forEach(function (v) {
           const pick = function (field) {
             const inp = metasCfgHost.querySelector('input[data-vid="' + v.id + '"][data-field="' + field + '"]');
-            const val = parseFloat(inp && inp.value);
-            return Number.isNaN(val) || val < 0 ? 0 : val;
+            const val = parseMoneyBR(inp && inp.value);
+            return val < 0 || !Number.isFinite(val) ? 0 : val;
           };
           global.MaycredData.upsertMeta({
             vendedoraId: v.id,

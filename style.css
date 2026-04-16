@@ -581,7 +581,7 @@ pre,
   margin-bottom: 0.75rem;
 }
 
-/* ----- Visão vendedora (sem R$) ----- */
+/* ----- Visão vendedora (%, pago; produção em R$ só como volume) ----- */
 .ui-vend-dash__mes {
   margin: -0.35rem 0 1rem;
 }
@@ -682,6 +682,92 @@ pre,
   margin: 0 0 1.35rem;
 }
 
+.ui-vend-pace {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.35rem;
+}
+
+.ui-vend-pace__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text3);
+  font-weight: 600;
+}
+
+.ui-vend-pace__hint {
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text3);
+  max-width: 40rem;
+}
+
+.ui-vend-pace__meta {
+  font-size: 0.8rem;
+  color: var(--text2);
+  line-height: 1.5;
+  margin: 0 0 0.85rem;
+}
+
+.ui-vend-pace__meta strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.ui-vend-pace__ok {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--green);
+}
+
+.ui-vend-pace__warn {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  color: var(--amber);
+  line-height: 1.4;
+}
+
+.ui-vend-pace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+  gap: 0.85rem;
+}
+
+.ui-vend-pace-item {
+  padding: 0.75rem 0.9rem;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+}
+
+.ui-vend-pace-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.ui-vend-pace-val {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ui-vend-pace-sub {
+  margin-top: 0.35rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--text3);
+}
+
 .ui-vend-rank {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -690,10 +776,17 @@ pre,
 }
 
 .ui-vend-rank__title {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.35rem;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.07em;
+  color: var(--text3);
+}
+
+.ui-vend-rank__sub {
+  margin: 0 0 0.75rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
   color: var(--text3);
 }
 

@@ -1913,13 +1913,21 @@
       el(
         'p',
         'ui-muted ui-vend-dash__mes',
-        'Mês ' + mes + ' · percentual atingido pelo que já entrou como pago na sua meta',
+        'Mês ' +
+          mes +
+          ' · o % abaixo é só pelo que já entrou como pago na meta (rentabilidade paga), sem exibir valores de comissão em R$',
       ),
     );
 
     const hero = el('div', 'ui-vend-hero ui-vend-hero--' + faixa);
     hero.appendChild(el('div', 'ui-vend-hero__pct', Math.round(pct) + '%'));
-    hero.appendChild(el('div', 'ui-vend-hero__sub', '% atingido (sem exibir valores em reais)'));
+    hero.appendChild(
+      el(
+        'div',
+        'ui-vend-hero__sub',
+        '% da meta = pago ÷ meta (100% quando tudo que conta como pago fechou o alvo)',
+      ),
+    );
     const bar = el('div', 'ui-vend-bar');
     const trk = el('div', 'ui-vend-bar__track');
     const fl = el('div', 'ui-vend-bar__fill ui-vend-bar__fill--' + faixa);
@@ -1932,8 +1940,88 @@
 
     wrap.appendChild(el('p', 'ui-vend-motiv', msg));
 
+    const taxa = global.MaycredCalc.taxaComissaoVendedora(self, st.config.comissaoPort, st.config.comissaoEntrante);
+    const volFalta = global.MaycredCalc.producaoEstimadaParaFecharMetaPago(metaRent, row.pago, taxa);
+    const prodCal = self.produto === 'ENTRANTE' ? 'ENTRANTE' : 'PORT';
+    const diasV = global.MaycredCalendar.getDiasUteisDoMes(mes, prodCal);
+    const restV = global.MaycredCalendar.diasUteisRestantes(diasV);
+
+    const paceSec = el('section', 'ui-vend-pace');
+    paceSec.appendChild(el('h3', 'ui-vend-pace__title', 'Quanto falta vender (produção)'));
+    paceSec.appendChild(
+      el(
+        'p',
+        'ui-vend-pace__hint',
+        'Valores em R$ aqui são só volume financiado (produção) estimado, não comissão. ' +
+          'Conta o que ainda falta para o pago fechar 100% da meta, usando a taxa do seu produto em Configurações (gestor). ' +
+          'Dias úteis = calendário ' +
+          (prodCal === 'PORT' ? 'Portabilidade' : 'Novo') +
+          ' do mês.',
+      ),
+    );
+    if (!(metaRent > 0)) {
+      paceSec.appendChild(el('p', 'ui-muted', 'Meta do mês ainda não definida pelo gestor.'));
+    } else if (!Number.isFinite(taxa) || taxa <= 0) {
+      paceSec.appendChild(
+        el('p', 'ui-muted', 'Taxa de comissão do produto não configurada — não dá para estimar o volume a vender.'),
+      );
+    } else if (Number.isNaN(volFalta)) {
+      paceSec.appendChild(el('p', 'ui-muted', 'Não foi possível estimar o volume com os dados atuais.'));
+    } else if (batida || volFalta <= 0) {
+      paceSec.appendChild(
+        el('p', 'ui-vend-pace__ok', 'Pelo pago, você já atingiu a meta deste mês. Continue vendendo para fortalecer o resultado!'),
+      );
+    } else {
+      let porDia = 0;
+      if (restV > 0) porDia = volFalta / restV;
+      else porDia = volFalta;
+      const porSem = porDia * 5;
+      const metaLin = el('p', 'ui-vend-pace__meta');
+      metaLin.appendChild(el('span', null, 'Produção ainda necessária (estimada): '));
+      metaLin.appendChild(el('strong', null, formatBRL(Math.round(volFalta * 100) / 100)));
+      metaLin.appendChild(el('span', null, ' · Dias úteis restantes: '));
+      metaLin.appendChild(el('strong', null, String(restV)));
+      paceSec.appendChild(metaLin);
+      if (restV <= 0) {
+        paceSec.appendChild(
+          el(
+            'p',
+            'ui-vend-pace__warn',
+            'Não há dias úteis restantes no calendário deste mês — ajuste com o gestor se precisar de ritmo diário.',
+          ),
+        );
+      }
+      const pg = el('div', 'ui-vend-pace-grid');
+      function vPaceCell(lbl, val, sub) {
+        const c = el('div', 'ui-vend-pace-item');
+        c.appendChild(el('div', 'ui-vend-pace-label', lbl));
+        c.appendChild(el('div', 'ui-vend-pace-val', val));
+        if (sub) c.appendChild(el('div', 'ui-vend-pace-sub', sub));
+        return c;
+      }
+      pg.appendChild(
+        vPaceCell(
+          'Média de produção por dia útil',
+          formatBRL(Math.round(porDia * 100) / 100),
+          restV > 0 ? 'Volume financiado médio a produzir por dia útil restante.' : 'Todo o volume estimado concentrado sem dias úteis no calendário.',
+        ),
+      );
+      pg.appendChild(
+        vPaceCell(
+          'Média por semana (5 du)',
+          formatBRL(Math.round(porSem * 100) / 100),
+          'Projeção: 5 × o valor diário acima (semana típica).',
+        ),
+      );
+      paceSec.appendChild(pg);
+    }
+    wrap.appendChild(paceSec);
+
     const rk = el('div', 'ui-vend-rank');
     rk.appendChild(el('h3', 'ui-vend-rank__title', 'Ranking do time'));
+    rk.appendChild(
+      el('p', 'ui-vend-rank__sub', 'Mesmo % do card: pago ÷ meta (sem exibir R$ de comissão).'),
+    );
     const ul = el('ul', 'ui-vend-rank__list');
     ranking.forEach(function (R, i) {
       const li = el('li', 'ui-vend-rank__item' + (R.id === vid ? ' ui-vend-rank__item--self' : ''));
@@ -1949,8 +2037,8 @@
       el(
         'p',
         'ui-muted ui-vend-foot',
-        'Nesta tela não aparecem valores em reais nem dados de comissão.'
-      )
+        'Não exibimos meta nem comissão em R$. Os valores em reais acima são só produção (financiado) estimada para o ritmo.',
+      ),
     );
     container.appendChild(wrap);
   }

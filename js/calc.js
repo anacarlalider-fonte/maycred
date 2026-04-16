@@ -400,6 +400,25 @@
   }
 
   /**
+   * Volume de produção (financiado) estimado para fechar o que ainda falta na meta,
+   * considerando só o **pago** vs meta de rentabilidade: (metaRent − pago) ÷ taxa do produto.
+   * @param {number} metaRent
+   * @param {number} pago
+   * @param {number} taxaComissaoDecimal — ex.: 0,04 para 4% sobre o financiado
+   * @returns {number} 0 se sem meta ou meta já batida no pago; NaN se taxa inválida
+   */
+  function producaoEstimadaParaFecharMetaPago(metaRent, pago, taxaComissaoDecimal) {
+    const mr = Number(metaRent);
+    const pg = Number(pago);
+    const tx = Number(taxaComissaoDecimal);
+    if (!Number.isFinite(mr) || mr <= 0) return 0;
+    const falta = Math.max(0, mr - (Number.isFinite(pg) ? pg : 0));
+    if (falta <= 0) return 0;
+    if (!Number.isFinite(tx) || tx <= 0) return NaN;
+    return falta / tx;
+  }
+
+  /**
    * Faixas para UI vendedora (% = Pago ÷ Meta × 100).
    * @param {number} pctVendedora
    * @returns {'vermelho'|'ambar'|'verde'|'dourado'}
@@ -471,6 +490,7 @@
   global.MaycredCalc = {
     calcVendedora,
     parseMetaTargets,
+    producaoEstimadaParaFecharMetaPago,
     calcMetaDiaria,
     calcTime,
     computeMesSnapshot,

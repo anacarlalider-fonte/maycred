@@ -283,14 +283,6 @@
     dashHead.appendChild(headLeft);
     container.appendChild(dashHead);
 
-    container.appendChild(
-      el(
-        'p',
-        'ui-dash-hint ui-dash-hint--rent',
-        'Cada card mostra o quanto da meta de rentabilidade (comissão no caixa) já foi acumulado no mês. Quando há planilha salva em Produção para a vendedora no mês, os percentuais usam esses valores; caso contrário, entram propostas e lançamentos conforme as regras do sistema. O valor do objetivo em R$ não aparece aqui — só o progresso até 100%.'
-      )
-    );
-
     const sorted = snap.linhas.slice().sort(function (a, b) {
       return b.row.pctGestor - a.row.pctGestor;
     });
@@ -301,24 +293,8 @@
       const row = L.row;
       const mt = global.MaycredCalc.parseMetaTargets(L.meta);
       const metaRent = mt.metaRent;
-      const metaVol = mt.metaVol;
       const pctRaw = row.pctGestor;
-      const pctProd = row.metaProducaoTotal > 0 ? row.pctMetaProducaoTotal : 0;
       const atingiu = metaRent > 0 && row.total >= metaRent;
-      const prodKey = v.produto === 'PORT' ? 'PORT' : 'ENTRANTE';
-      const diasProd = global.MaycredCalendar.getDiasUteisDoMes(mes, prodKey);
-      const dRest = global.MaycredCalendar.diasUteisRestantes(diasProd);
-      const dTot = global.MaycredCalendar.diasUteisTotais(diasProd);
-      const faltaR = Math.max(0, row.faltaRent);
-      const faltaP = Math.max(0, row.faltaProducao);
-      const ritmoRent =
-        metaRent > 0
-          ? global.MaycredCalc.calcMetaDiaria(faltaR, dRest, metaRent, dTot)
-          : null;
-      const ritmoVol =
-        metaVol > 0
-          ? global.MaycredCalc.calcMetaDiaria(faltaP, dRest, metaVol, dTot)
-          : null;
       const faixa = atingiu ? 'dourado' : global.MaycredCalc.faixaDesempenhoVendedora(Math.min(100, pctRaw));
 
       const card = el('article', 'ui-rent-card ui-rent-card--' + faixa);
@@ -346,48 +322,6 @@
       trk.appendChild(fl);
       bar.appendChild(trk);
       card.appendChild(bar);
-
-      if (metaRent <= 0) {
-        card.appendChild(el('div', 'ui-rent-card__foot ui-muted', 'Defina as metas em Configurações → Metas do mês'));
-      } else if (atingiu) {
-        card.appendChild(el('div', 'ui-rent-card__foot ui-rent-card__foot--ok', '100% — rentabilidade do mês fechada'));
-      } else {
-        const faltaPct = Math.max(0, 100 - pctRaw);
-        card.appendChild(
-          el('div', 'ui-rent-card__foot', 'Faltam ~' + faltaPct.toFixed(0) + '% na rentabilidade')
-        );
-      }
-      if (metaVol > 0) {
-        card.appendChild(
-          el(
-            'div',
-            'ui-rent-card__foot ui-muted',
-            'Volume (bruto): ' + Math.round(Math.min(100, pctProd)) + '% da meta de produção',
-          ),
-        );
-      }
-      if (!atingiu && metaRent > 0 && ritmoRent && ritmoRent.metaDiaria > 0) {
-        card.appendChild(
-          el(
-            'div',
-            'ui-rent-card__foot ui-muted',
-            'Ritmo rentabilidade: ' +
-              formatBRL(ritmoRent.metaDiaria) +
-              ' / dia útil restante',
-          ),
-        );
-      }
-      if (metaVol > 0 && !Number.isNaN(row.faltaProducao) && row.faltaProducao > 0 && ritmoVol && ritmoVol.metaDiaria > 0) {
-        card.appendChild(
-          el(
-            'div',
-            'ui-rent-card__foot ui-muted',
-            'Ritmo volume: ' +
-              formatBRL(ritmoVol.metaDiaria) +
-              ' / dia útil restante',
-          ),
-        );
-      }
 
       grid.appendChild(card);
     });

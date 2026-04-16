@@ -763,12 +763,12 @@
 
       const t2 = el('table', 'ui-table ui-table--producao-resumo-por-produto-inner');
       const th2 = el('thead');
-      const hr2 = el('tr');
+      const hr2 = el('tr', 'ui-producao-resumo-prod-head');
       [
         '',
-        'META pr.',
+        'Meta produção',
         '%',
-        'META rent.',
+        'Meta rent.',
         'Pr. análise',
         '%',
         'Rec. análise',
@@ -800,8 +800,17 @@
       trT.classList.add('ui-producao-total-geral');
       tb2.appendChild(trT);
       t2.appendChild(tb2);
-      twResumo.appendChild(el('h3', 'ui-dash-subtitle', 'Resumo por produto (mesmas fases)'));
-      twResumo.appendChild(t2);
+      const resumoCard = el('div', 'ui-producao-resumo-prod-card');
+      resumoCard.appendChild(el('h3', 'ui-producao-resumo-prod-title', 'Resumo por produto'));
+      resumoCard.appendChild(
+        el(
+          'p',
+          'ui-producao-resumo-prod-desc',
+          'Totais agregados por PORT e ENTRANTE, nas mesmas fases da planilha (meta → análise → averbada → total).',
+        ),
+      );
+      resumoCard.appendChild(t2);
+      twResumo.appendChild(resumoCard);
 
       btnSave.onclick = function () {
         const st2 = global.MaycredData.getState();

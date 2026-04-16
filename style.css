@@ -1208,20 +1208,198 @@ pre,
 }
 
 .ui-producao-resumo-por-produto {
-  margin-top: 1.5rem;
+  margin-top: 2rem;
+}
+
+.ui-producao-resumo-prod-card {
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: linear-gradient(165deg, rgba(24, 27, 34, 0.98) 0%, rgba(12, 14, 18, 0.99) 100%);
+  padding: 1rem 1.15rem 1.2rem;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.4);
+}
+
+.ui-producao-resumo-prod-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-family: var(--font-serif);
+  color: var(--may-gold-bright);
+  letter-spacing: 0.02em;
+}
+
+.ui-producao-resumo-prod-desc {
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text2);
+  max-width: 48rem;
 }
 
 .ui-table--producao-resumo-por-produto-inner {
-  min-width: 58rem;
+  --resumo-stage-gap: 8px;
+  width: 100%;
+  min-width: 56rem;
   max-width: 100%;
+  border-collapse: separate;
+  border-spacing: 8px 6px;
+  font-size: 0.8125rem;
 }
 
 .ui-producao-total-geral td {
   font-weight: 600;
 }
 
-.ui-table--producao-resumo-por-produto-inner tr.ui-producao-total-geral > td {
-  background: var(--may-navy-mid);
+/* Cabeçalho: mesma leitura de fases que a planilha principal */
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text2);
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.55rem 0.45rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  white-space: nowrap;
+}
+
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(1) {
+  background: rgba(148, 163, 184, 0.28);
+  color: var(--text);
+  text-align: left;
+  padding-left: 0.65rem;
+}
+
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(2),
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(3),
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(4) {
+  background: rgba(56, 189, 248, 0.2);
+  color: var(--text);
+}
+
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(5),
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(6),
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(7) {
+  background: rgba(250, 204, 21, 0.22);
+  color: #0f172a;
+}
+
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(8),
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(9),
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(10) {
+  background: rgba(34, 197, 94, 0.2);
+  color: #0a1628;
+}
+
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(11),
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(12),
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(13) {
+  background: rgba(99, 102, 241, 0.22);
+  color: var(--text);
+}
+
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(2),
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(5),
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(8),
+.ui-table--producao-resumo-por-produto-inner thead .ui-producao-resumo-prod-head th:nth-child(11) {
+  border-left: var(--resumo-stage-gap) solid var(--bg);
+}
+
+/* Corpo: colunas por fase + primeira coluna de rótulo */
+.ui-table--producao-resumo-por-produto-inner tbody tr > td {
+  padding: 0.5rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  text-align: center;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(1) {
+  text-align: left;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: rgba(148, 163, 184, 0.12) !important;
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-row--port > td:nth-child(1) {
+  color: var(--cyan);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-row--entrante > td:nth-child(1) {
+  color: var(--green);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-row--total-resumo > td:nth-child(1) {
+  color: var(--may-gold-bright);
+  text-transform: uppercase;
+  font-size: 0.68rem;
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(2),
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(3),
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(4) {
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(5),
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(6),
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(7) {
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(8),
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(9),
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(10) {
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(11),
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(12),
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(13) {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(2),
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(5),
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(8),
+.ui-table--producao-resumo-por-produto-inner tbody tr > td:nth-child(11) {
+  border-left: var(--resumo-stage-gap) solid var(--bg);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td {
+  border-color: rgba(240, 180, 41, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(2),
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(3),
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(4) {
+  background: rgba(56, 189, 248, 0.16);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(5),
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(6),
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(7) {
+  background: rgba(250, 204, 21, 0.16);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(8),
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(9),
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(10) {
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(11),
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(12),
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(13) {
+  background: rgba(99, 102, 241, 0.18);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-total-geral > td:nth-child(1) {
+  background: rgba(148, 163, 184, 0.2) !important;
 }
 
 .ui-producao-total-label {
@@ -1587,19 +1765,6 @@ pre,
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(12),
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(13) {
   background: rgba(99, 102, 241, 0.22);
-}
-
-/* Resumo por produto: blocos PORT / ENTRANTE */
-.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-row--port > td {
-  background: rgba(0, 200, 230, 0.07);
-}
-
-.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-row--entrante > td {
-  background: rgba(34, 197, 94, 0.08);
-}
-
-.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-row--total-resumo > td {
-  background: rgba(28, 52, 88, 0.65);
 }
 
 .ui-table--metas-dual {

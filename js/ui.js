@@ -373,8 +373,7 @@
             'ui-rent-card__foot ui-muted',
             'Ritmo rentabilidade: ' +
               formatBRL(ritmoRent.metaDiaria) +
-              ' / dia útil restante · calendário ' +
-              (prodKey === 'PORT' ? 'Portabilidade' : 'Novo'),
+              ' / dia útil restante',
           ),
         );
       }
@@ -385,8 +384,7 @@
             'ui-rent-card__foot ui-muted',
             'Ritmo volume: ' +
               formatBRL(ritmoVol.metaDiaria) +
-              ' / dia útil restante · calendário ' +
-              (prodKey === 'PORT' ? 'Portabilidade' : 'Novo'),
+              ' / dia útil restante',
           ),
         );
       }

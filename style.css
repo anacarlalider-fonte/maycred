@@ -1253,8 +1253,9 @@ pre,
   min-width: 78rem;
   table-layout: auto;
   border-collapse: separate;
-  /* Espaço entre blocos de fase (colunas) e um pouco entre linhas */
-  border-spacing: 8px 6px;
+  /* Entre colunas; o “vão” escuro entre estágios usa também border-left (--producao-stage-gap) */
+  border-spacing: 10px 8px;
+  --producao-stage-gap: 10px;
   /* Larguras aproximadas do bloco Identificação (sticky horizontal) */
   --producao-sticky-w1: 16rem;
   --producao-sticky-w2: 4.25rem;
@@ -1324,6 +1325,32 @@ pre,
   z-index: 3;
   min-width: calc(var(--producao-sticky-w1) + var(--producao-sticky-w2) + var(--producao-sticky-w3));
   box-shadow: 6px 0 14px rgba(0, 0, 0, 0.35);
+}
+
+/* Faixa do fundo da página entre um estágio e o próximo (como no print) */
+.ui-table--producao-planilha thead .ui-producao-head-phases th:not(:first-child) {
+  border-left: var(--producao-stage-gap) solid var(--bg);
+}
+
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(4),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(7),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(10),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(13) {
+  border-left: var(--producao-stage-gap) solid var(--bg);
+}
+
+.ui-table--producao-planilha tbody tr > td:nth-child(4),
+.ui-table--producao-planilha tbody tr > td:nth-child(7),
+.ui-table--producao-planilha tbody tr > td:nth-child(10),
+.ui-table--producao-planilha tbody tr > td:nth-child(13) {
+  border-left: var(--producao-stage-gap) solid var(--bg);
+}
+
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(2),
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(5),
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(8),
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(11) {
+  border-left: var(--producao-stage-gap) solid var(--bg);
 }
 
 .ui-producao-pct-cell {
@@ -1400,7 +1427,7 @@ pre,
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 640px) {
   .ui-table--producao-planilha thead .ui-producao-head-phases th:first-child,
   .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(1),
   .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(2),

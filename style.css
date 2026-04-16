@@ -1191,16 +1191,29 @@ pre,
   margin-bottom: 0.35rem;
 }
 
-.ui-producao-page {
-  padding: 0.25rem 0 1rem;
+.ui-producao-page--premium {
+  padding: 0 0 2rem;
+}
+
+.ui-producao-page--premium .ui-section__title {
+  margin: 0 0 0.4rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #f8fafc;
 }
 
 .ui-producao-toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  align-items: center;
+  gap: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1.05rem;
+  background: linear-gradient(180deg, rgba(30, 34, 44, 0.96) 0%, rgba(18, 21, 28, 0.99) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .ui-producao-toolbar__data {
@@ -1208,18 +1221,38 @@ pre,
 }
 
 .ui-producao-lede {
-  margin: 0 0 1.1rem;
-  max-width: 54rem;
+  margin: 0 0 1.15rem;
+  max-width: 52rem;
   font-size: 0.875rem;
-  line-height: 1.62;
-  color: #cbd5e1;
+  line-height: 1.65;
+  color: #a8b4c9;
   font-weight: 400;
 }
 
 .ui-producao-toolbar .ui-producao-btn-save {
+  margin-left: auto;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  box-shadow: 0 2px 16px rgba(14, 165, 233, 0.22);
+  letter-spacing: 0.03em;
+  padding: 0.55rem 1.15rem;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%);
+  color: #0c1220;
+  border: 1px solid rgba(14, 165, 233, 0.5);
+  box-shadow: 0 2px 12px rgba(14, 165, 233, 0.25);
+}
+
+.ui-producao-toolbar .ui-producao-btn-save:hover {
+  filter: brightness(1.05);
+}
+
+.ui-producao-planilha-shell {
+  padding: 1rem 1rem 1.15rem;
+  background: linear-gradient(165deg, rgba(26, 29, 38, 0.98) 0%, rgba(12, 14, 19, 1) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 24px 56px -24px rgba(0, 0, 0, 0.7);
 }
 
 .ui-producao-resumo-por-produto {
@@ -1419,9 +1452,10 @@ pre,
 
 .ui-producao-total-label {
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 0.72rem;
-  color: var(--text2);
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #cbd5e1;
 }
 
 .ui-producao-resumo-wrap {
@@ -1446,28 +1480,26 @@ pre,
   min-width: 70rem;
   table-layout: auto;
   border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.8125rem;
-  /* Entre colunas; o “vão” escuro entre estágios usa também border-left (--producao-stage-gap) */
-  border-spacing: 5px 4px;
-  --producao-stage-gap: 8px;
-  /* Bloco Time (sticky): colunas mais estreitas = menos vão entre Vendedora / DISC / Produto */
   --producao-sticky-w1: 11.75rem;
   --producao-sticky-w2: 2.9rem;
   --producao-sticky-w3: 5.35rem;
-  /* Time (1ª fase): fundos 100% opacos no sticky (sem rgba translúcido) */
-  --producao-ident-solid-body: #1c222e;
-  --producao-ident-solid-head: #2a3140;
-  --producao-ident-solid-phase: #363f52;
+  --producao-cell-pad-x: 0.55rem;
+  --producao-cell-pad-y: 0.5rem;
+  --producao-ident-solid-body: #181c24;
+  --producao-ident-solid-head: #1c212c;
+  --producao-ident-solid-phase: #222831;
+  --producao-cell-border: rgba(255, 255, 255, 0.055);
+  --producao-stage-line: rgba(255, 255, 255, 0.09);
 }
 
-/* Bloco Time (Vendedora / DISC / Produto) fixo ao rolar horizontalmente */
 .ui-table--producao-planilha thead .ui-producao-head-phases th:first-child {
   position: sticky;
   left: 0;
   z-index: 6;
   min-width: calc(var(--producao-sticky-w1) + var(--producao-sticky-w2) + var(--producao-sticky-w3));
-  box-shadow: 6px 0 14px rgba(0, 0, 0, 0.35);
-  padding: 0.38rem 0.35rem;
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.45), 10px 0 28px -10px rgba(0, 0, 0, 0.55);
 }
 
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(1) {
@@ -1475,7 +1507,7 @@ pre,
   left: 0;
   z-index: 5;
   min-width: var(--producao-sticky-w1);
-  box-shadow: 6px 0 12px rgba(0, 0, 0, 0.32);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.45), 8px 0 24px -10px rgba(0, 0, 0, 0.5);
 }
 
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(2) {
@@ -1483,7 +1515,7 @@ pre,
   left: var(--producao-sticky-w1);
   z-index: 5;
   min-width: var(--producao-sticky-w2);
-  box-shadow: 6px 0 12px rgba(0, 0, 0, 0.22);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.35), 6px 0 20px -8px rgba(0, 0, 0, 0.45);
 }
 
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(3) {
@@ -1491,7 +1523,7 @@ pre,
   left: calc(var(--producao-sticky-w1) + var(--producao-sticky-w2));
   z-index: 5;
   min-width: var(--producao-sticky-w3);
-  box-shadow: 8px 0 16px rgba(0, 0, 0, 0.35);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.45), 10px 0 28px -10px rgba(0, 0, 0, 0.55);
 }
 
 .ui-table--producao-planilha tbody tr > td:nth-child(1) {
@@ -1499,7 +1531,7 @@ pre,
   left: 0;
   z-index: 2;
   min-width: var(--producao-sticky-w1);
-  box-shadow: 6px 0 12px rgba(0, 0, 0, 0.28);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.45), 8px 0 24px -10px rgba(0, 0, 0, 0.5);
 }
 
 .ui-table--producao-planilha tbody tr > td:nth-child(2) {
@@ -1507,7 +1539,7 @@ pre,
   left: var(--producao-sticky-w1);
   z-index: 3;
   min-width: var(--producao-sticky-w2);
-  box-shadow: 6px 0 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.35), 6px 0 20px -8px rgba(0, 0, 0, 0.45);
 }
 
 .ui-table--producao-planilha tbody tr > td:nth-child(3) {
@@ -1515,7 +1547,7 @@ pre,
   left: calc(var(--producao-sticky-w1) + var(--producao-sticky-w2));
   z-index: 4;
   min-width: var(--producao-sticky-w3);
-  box-shadow: 8px 0 16px rgba(0, 0, 0, 0.32);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.45), 10px 0 28px -10px rgba(0, 0, 0, 0.55);
 }
 
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(1) {
@@ -1523,69 +1555,69 @@ pre,
   left: 0;
   z-index: 5;
   min-width: calc(var(--producao-sticky-w1) + var(--producao-sticky-w2) + var(--producao-sticky-w3));
-  box-shadow: 6px 0 14px rgba(0, 0, 0, 0.35);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.45), 10px 0 28px -10px rgba(0, 0, 0, 0.55);
 }
 
-/* Faixa do fundo da página entre um estágio e o próximo (como no print) */
-.ui-table--producao-planilha thead .ui-producao-head-phases th:not(:first-child) {
-  border-left: var(--producao-stage-gap) solid var(--bg);
-}
-
+.ui-table--producao-planilha thead .ui-producao-head-phases th:not(:first-child),
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(4),
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(7),
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(10),
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(13) {
-  border-left: var(--producao-stage-gap) solid var(--bg);
-}
-
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(13),
 .ui-table--producao-planilha tbody tr > td:nth-child(4),
 .ui-table--producao-planilha tbody tr > td:nth-child(7),
 .ui-table--producao-planilha tbody tr > td:nth-child(10),
-.ui-table--producao-planilha tbody tr > td:nth-child(13) {
-  border-left: var(--producao-stage-gap) solid var(--bg);
-}
-
+.ui-table--producao-planilha tbody tr > td:nth-child(13),
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(2),
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(5),
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(8),
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(11) {
-  border-left: var(--producao-stage-gap) solid var(--bg);
+  border-left: 1px solid var(--producao-stage-line);
 }
 
 .ui-producao-pct-cell {
   font-size: 0.8125rem;
-  color: var(--text2);
+  font-weight: 600;
+  color: #94a3b8;
   text-align: center;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .ui-table--producao-planilha thead .ui-producao-head-cols th {
   font-family: var(--font);
-  font-size: 0.68rem;
+  font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.045em;
+  letter-spacing: 0.08em;
 }
 
 .ui-table--producao-planilha tbody tr > td,
-.ui-table--producao-planilha thead .ui-producao-head-cols th {
-  padding-top: 0.42rem;
-  padding-bottom: 0.42rem;
+.ui-table--producao-planilha thead .ui-producao-head-cols th,
+.ui-table--producao-planilha tfoot tr > td {
+  padding: var(--producao-cell-pad-y) var(--producao-cell-pad-x);
+  border-right: 1px solid var(--producao-cell-border);
+  border-bottom: 1px solid var(--producao-cell-border);
 }
 
-/* % na planilha: leitura forte sobre fundo de fase (índices após Objetivo = 3 col.) */
-.ui-table--producao-planilha tbody tr > td:nth-child(8).ui-producao-pct-cell {
-  color: #0f172a;
-  font-weight: 600;
+.ui-table--producao-planilha thead .ui-producao-head-cols th:last-child,
+.ui-table--producao-planilha tbody tr > td:last-child,
+.ui-table--producao-planilha tfoot tr > td:last-child {
+  border-right: none;
 }
 
-.ui-table--producao-planilha tbody tr > td:nth-child(11).ui-producao-pct-cell {
-  color: #052e16;
-  font-weight: 600;
-}
-
+.ui-table--producao-planilha tbody tr > td:nth-child(8).ui-producao-pct-cell,
+.ui-table--producao-planilha tbody tr > td:nth-child(11).ui-producao-pct-cell,
 .ui-table--producao-planilha tbody tr > td:nth-child(14).ui-producao-pct-cell {
-  color: #e2e8f0;
+  color: #cbd5e1;
   font-weight: 600;
+}
+
+.ui-producao-planilha-shell .ui-producao-totais-dupla {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(10, 12, 18, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  font-size: 0.875rem;
 }
 
 .ui-producao-totais-dupla {
@@ -1593,12 +1625,6 @@ pre,
   flex-wrap: wrap;
   align-items: center;
   gap: 1.25rem 2rem;
-  margin-top: 0.75rem;
-  padding: 0.65rem 0.85rem;
-  background: var(--may-navy-mid);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  font-size: 0.9rem;
 }
 
 .ui-producao-totais-dupla__item {
@@ -1608,10 +1634,11 @@ pre,
 }
 
 .ui-producao-totais-dupla__lbl {
-  color: var(--text2);
-  font-size: 0.75rem;
+  color: #8b9aaf;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.07em;
 }
 
 @media (max-width: 768px) {
@@ -1673,98 +1700,61 @@ pre,
 }
 
 .ui-table--producao-planilha .ui-producao-head-phases th {
-  font-size: 0.68rem;
+  padding: 0.55rem var(--producao-cell-pad-x);
+  font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   text-align: center;
   vertical-align: middle;
-  padding: 0.5rem 0.4rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border2);
-  border-bottom: 1px solid var(--border);
-}
-
-/* Fases da planilha — ajuste rgba aqui para refinar tons */
-.ui-table--producao-planilha .ui-producao-phase-head {
-  color: var(--text);
+  background: #1e2430;
+  color: #e8eef7;
+  border-right: 1px solid var(--producao-cell-border);
+  border-bottom: 1px solid var(--producao-cell-border);
+  box-shadow: inset 0 -2px 0 0 transparent;
+  border-radius: 0;
 }
 
 .ui-table--producao-planilha .ui-producao-phase-head--ident {
-  background: var(--producao-ident-solid-phase);
-  color: var(--text);
+  box-shadow: inset 0 -2px 0 0 #64748b;
 }
 
-/* Objetivo: faixa legível no tema escuro */
 .ui-table--producao-planilha .ui-producao-phase-head--objetivo {
-  background: rgba(56, 189, 248, 0.3);
-  color: #f0f9ff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 -2px 0 0 #38bdf8;
 }
 
 .ui-table--producao-planilha .ui-producao-phase-head--analise {
-  background: rgba(250, 204, 21, 0.32);
-  color: #0f172a;
+  box-shadow: inset 0 -2px 0 0 #eab308;
 }
 
 .ui-table--producao-planilha .ui-producao-phase-head--averb {
-  background: rgba(34, 197, 94, 0.32);
-  color: #0a1628;
+  box-shadow: inset 0 -2px 0 0 #22c55e;
 }
 
-/* Total: índigo (fecha o quadro; troque por outro neutro se preferir) */
 .ui-table--producao-planilha .ui-producao-phase-head--total {
-  background: rgba(99, 102, 241, 0.28);
-  color: var(--text);
+  box-shadow: inset 0 -2px 0 0 #818cf8;
 }
 
-/* Planilha produção: colunas alinhadas às fases (cinza / objetivo / amarelo / verde / total) */
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(1),
+.ui-table--producao-planilha thead .ui-producao-head-phases th:last-child {
+  border-right: none;
+}
+
+.ui-table--producao-planilha thead .ui-producao-head-cols th {
+  background: #161922 !important;
+  color: #8b9aaf !important;
+  text-shadow: none;
+}
+
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(2),
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(3) {
-  background: var(--producao-ident-solid-head);
-  color: var(--text2);
-  padding: 0.4rem 0.35rem;
-}
-
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(2) {
-  text-align: center;
-}
-
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(4),
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(5),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(3),
 .ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(6) {
-  background: rgba(56, 189, 248, 0.32);
-  color: #f0f9ff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-}
-
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(7),
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(8),
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(9) {
-  background: rgba(250, 204, 21, 0.22);
-  color: var(--text);
-}
-
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(10),
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(11),
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(12) {
-  background: rgba(34, 197, 94, 0.18);
-  color: var(--text);
-}
-
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(13),
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(14),
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(15) {
-  background: rgba(99, 102, 241, 0.2);
-  color: var(--text2);
+  text-align: center;
 }
 
 .ui-table--producao-planilha tbody tr > td:nth-child(1),
 .ui-table--producao-planilha tbody tr > td:nth-child(2),
 .ui-table--producao-planilha tbody tr > td:nth-child(3) {
   background: var(--producao-ident-solid-body);
-  padding: 0.45rem 0.35rem;
 }
 
 .ui-table--producao-planilha tbody tr > td:nth-child(2),
@@ -1772,50 +1762,44 @@ pre,
   text-align: center;
 }
 
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(3),
-.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(6) {
-  text-align: center;
+.ui-table--producao-planilha .ui-vend-cell {
+  gap: 0.5rem;
 }
 
-.ui-table--producao-planilha .ui-vend-cell {
-  gap: 0.45rem;
+.ui-table--producao-planilha .ui-vend-cell__name {
+  color: #e8eef7;
+  font-weight: 600;
+  font-size: 0.8125rem;
 }
 
 .ui-table--producao-planilha tbody tr > td:nth-child(1) .ui-avatar {
-  width: 1.75rem;
-  height: 1.75rem;
-  font-size: 0.62rem;
+  width: 1.7rem;
+  height: 1.7rem;
+  font-size: 0.61rem;
 }
 
 .ui-table--producao-planilha tbody tr > td:nth-child(4),
 .ui-table--producao-planilha tbody tr > td:nth-child(5),
-.ui-table--producao-planilha tbody tr > td:nth-child(6) {
-  background: rgba(56, 189, 248, 0.16);
-  color: #f1f5f9;
-  vertical-align: middle;
-}
-
+.ui-table--producao-planilha tbody tr > td:nth-child(6),
 .ui-table--producao-planilha tbody tr > td:nth-child(7),
 .ui-table--producao-planilha tbody tr > td:nth-child(8),
-.ui-table--producao-planilha tbody tr > td:nth-child(9) {
-  background: rgba(250, 204, 21, 0.12);
-}
-
+.ui-table--producao-planilha tbody tr > td:nth-child(9),
 .ui-table--producao-planilha tbody tr > td:nth-child(10),
 .ui-table--producao-planilha tbody tr > td:nth-child(11),
-.ui-table--producao-planilha tbody tr > td:nth-child(12) {
-  background: rgba(34, 197, 94, 0.12);
-}
-
+.ui-table--producao-planilha tbody tr > td:nth-child(12),
 .ui-table--producao-planilha tbody tr > td:nth-child(13),
 .ui-table--producao-planilha tbody tr > td:nth-child(14),
 .ui-table--producao-planilha tbody tr > td:nth-child(15) {
-  background: rgba(99, 102, 241, 0.14);
+  background: #141820;
+}
+
+.ui-table--producao-planilha tbody tr:hover > td:not(:nth-child(-n+3)) {
+  background: #181d27;
 }
 
 .ui-table--producao-planilha tbody tr > td:nth-child(13).ui-producao-soma-nao-editavel,
 .ui-table--producao-planilha tbody tr > td:nth-child(15).ui-producao-soma-nao-editavel {
-  background: rgba(99, 102, 241, 0.18);
+  background: #161c28;
 }
 
 .ui-table--producao-planilha tbody tr > td:nth-child(13).ui-mono,
@@ -1824,74 +1808,22 @@ pre,
   font-weight: 600;
 }
 
-/* Objetivo: metas automáticas — texto claro sobre faixa azul */
 .ui-table--producao-planilha tbody tr > td.ui-producao-meta-auto,
 .ui-table--producao-planilha tbody tr > td.ui-producao-meta-tx {
-  color: #f8fafc;
+  color: #e8eef7;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.ui-table--producao-planilha tbody tr > td.ui-producao-meta-tx {
-  font-size: 0.8125rem;
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td {
+  background: #1a1f2a;
+  color: #f1f5f9;
+  font-weight: 600;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Rodapé TOTAL GERAL: 1ª célula = ident (colspan 3); 2–4 objetivo; 5–7 análise; 8–10 averb.; 11–13 total */
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(1) {
   background: var(--producao-ident-solid-head);
-  padding: 0.45rem 0.4rem;
-}
-
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(2),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(3),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(4) {
-  background: rgba(56, 189, 248, 0.18);
-}
-
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(5),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(6),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(7) {
-  background: rgba(250, 204, 21, 0.2);
-}
-
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(8),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(9),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(10) {
-  background: rgba(34, 197, 94, 0.18);
-}
-
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(11),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(12),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(13) {
-  background: rgba(99, 102, 241, 0.22);
-}
-
-/* Rodapé: valores em cor legível por faixa (evita ui-mono + text2 apagado no amarelo/verde) */
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(2),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(3),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(4) {
-  color: #0c1220;
-  font-weight: 700;
-}
-
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(5),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(6),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(7) {
-  color: #1c1917;
-  font-weight: 700;
-}
-
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(8),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(9),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(10) {
-  color: #022c22;
-  font-weight: 700;
-}
-
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(11),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(12),
-.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(13) {
-  color: #e2e8f0;
   font-weight: 700;
 }
 
@@ -1916,53 +1848,32 @@ pre,
   font-variant-numeric: tabular-nums;
 }
 
-/* Inputs da planilha: fundo claro opaco + texto escuro (contraste em fases coloridas) */
-.ui-table--producao-planilha tbody tr > td:nth-child(7) .ui-input,
-.ui-table--producao-planilha tbody tr > td:nth-child(9) .ui-input {
-  background: rgba(254, 249, 231, 0.96);
-  color: #1c1917;
-  border-color: rgba(120, 53, 15, 0.35);
-}
-
-.ui-table--producao-planilha tbody tr > td:nth-child(7) .ui-input::placeholder,
-.ui-table--producao-planilha tbody tr > td:nth-child(9) .ui-input::placeholder {
-  color: #57534e;
-}
-
-.ui-table--producao-planilha tbody tr > td:nth-child(10) .ui-input,
-.ui-table--producao-planilha tbody tr > td:nth-child(12) .ui-input {
-  background: rgba(220, 252, 231, 0.95);
-  color: #052e16;
-  border-color: rgba(21, 128, 61, 0.42);
-}
-
-.ui-table--producao-planilha tbody tr > td:nth-child(10) .ui-input::placeholder,
-.ui-table--producao-planilha tbody tr > td:nth-child(12) .ui-input::placeholder {
-  color: #166534;
-}
-
-.ui-table--producao-planilha tbody tr > td:nth-child(7) .ui-input:focus,
-.ui-table--producao-planilha tbody tr > td:nth-child(9) .ui-input:focus {
-  background: #fffbeb;
-  border-color: rgba(180, 83, 9, 0.55);
-  color: #1c1917;
-}
-
-.ui-table--producao-planilha tbody tr > td:nth-child(10) .ui-input:focus,
-.ui-table--producao-planilha tbody tr > td:nth-child(12) .ui-input:focus {
-  background: #ecfdf3;
-  border-color: rgba(22, 163, 74, 0.6);
-  color: #052e16;
-}
-
 .ui-table--producao-planilha .ui-producao-input-cell {
   vertical-align: middle;
 }
 
 .ui-table--producao-planilha .ui-producao-input-cell .ui-input {
-  padding: 0.38rem 0.52rem;
-  min-height: 2.05rem;
-  line-height: 1.25;
+  padding: 0.36rem 0.5rem;
+  min-height: 2rem;
+  line-height: 1.3;
+  border-radius: 8px;
+  background: #0e1016;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.ui-table--producao-planilha .ui-producao-input-cell .ui-input::placeholder {
+  color: #64748b;
+}
+
+.ui-table--producao-planilha .ui-producao-input-cell .ui-input:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 0 2px rgba(56, 189, 248, 0.12);
+  background: #12151c;
 }
 
 .ui-table--producao-planilha .ui-producao-soma-nao-editavel {

@@ -353,7 +353,7 @@
   /** @param {HTMLElement} container */
   function renderProducao(container) {
     clear(container);
-    const page = el('div', 'ui-producao-page');
+    const page = el('div', 'ui-producao-page ui-producao-page--premium');
     page.appendChild(el('h2', 'ui-section__title', 'Produção'));
     page.appendChild(
       el(
@@ -376,7 +376,7 @@
     toolbar.appendChild(btnSave);
     page.appendChild(toolbar);
 
-    const tw = el('div', 'ui-table-wrap ui-producao-resumo-wrap');
+    const tw = el('div', 'ui-table-wrap ui-producao-resumo-wrap ui-producao-planilha-shell');
     const twResumo = el('div', 'ui-table-wrap ui-producao-resumo-wrap ui-producao-resumo-por-produto');
     page.appendChild(tw);
     page.appendChild(twResumo);

@@ -1,5 +1,5 @@
-/**
- * Área da vendedora (perfil Venda): desempenho, pipeline, clientes, propostas.
+﻿/**
+ * Área da vendedora (perfil Venda): desempenho, pipeline, clientes.
  * Sem exibir comissão/rentabilidade em R$ nem meta em R$. Isolamento por vendedoraId na gravação.
  */
 (function (global) {
@@ -130,21 +130,6 @@
       'R$\u00a0' +
       x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     );
-  }
-
-  function propostaDuplicadaVend(st, op, excludeId, vid) {
-    const cpf = onlyDigits(op.clienteCpf || '');
-    if (cpf.length !== 11) return false;
-    const mesRef = op.data && String(op.data).length >= 7 ? String(op.data).slice(0, 7) : '';
-    if (!mesRef) return false;
-    const banco = String(op.bancoParceiro || 'Outros');
-    return st.operacoes.some(function (x) {
-      if (excludeId && x.id === excludeId) return false;
-      if (String(x.vendedoraId) !== String(vid)) return false;
-      if (!x.data || String(x.data).slice(0, 7) !== mesRef) return false;
-      if (String(x.bancoParceiro || 'Outros') !== banco) return false;
-      return onlyDigits(x.clienteCpf || '') === cpf;
-    });
   }
 
   function renderDesempenho(container) {
@@ -343,832 +328,6 @@
     paint();
   }
 
-  function renderPropostas(container) {
-    const vid = global.MaycredAuth.getVendedoraIdOperacional();
-    if (!vid) {
-      container.appendChild(el('p', 'ui-muted', 'Sessão inválida.'));
-      return;
-    }
-
-    const MO = global.MaycredOperacoes;
-    const Cal = global.MaycredCalendar;
-
-    let editingId = null;
-    /** '' = usar mês ativo do app; '__todos__' = todas as propostas suas */
-    let filtroMesPropostas = '';
-
-    function mesDaOperacao(o) {
-      if (o.mes && String(o.mes).length >= 7) return String(o.mes).slice(0, 7);
-      if (o.data && String(o.data).length >= 7) return String(o.data).slice(0, 7);
-      return '';
-    }
-
-    function minhasOps(st) {
-      let list = st.operacoes.filter(function (o) {
-        return String(o.vendedoraId) === String(vid);
-      });
-      if (filtroMesPropostas !== '__todos__') {
-        const m = filtroMesPropostas || st.config.mesAtual || '';
-        list = list.filter(function (o) {
-          return mesDaOperacao(o) === m;
-        });
-      }
-      return list.sort(function (a, b) {
-        return String(b.data || '').localeCompare(String(a.data || ''));
-      });
-    }
-
-    function paint() {
-      clear(container);
-      const st = global.MaycredData.getState();
-      const wrap = el('div', 'ui-section ui-vend-mod');
-      wrap.appendChild(el('h2', 'ui-section__title', 'Minhas propostas'));
-      wrap.appendChild(
-        el(
-          'p',
-          'ui-muted',
-          'Somente as suas propostas. Use a tabela correta para contar na meta. Valores de comissão não são exibidos aqui.',
-        ),
-      );
-
-      const top = el('div', 'ui-flex-gap ui-flex-gap--wrap');
-      const btnNova = el('button', 'ui-btn ui-btn--primary', '+ Nova proposta');
-      btnNova.type = 'button';
-      btnNova.addEventListener('click', function () {
-        editingId = null;
-        paint();
-      });
-      top.appendChild(btnNova);
-
-      const fMes = el('div', 'ui-field ui-field--inline');
-      fMes.appendChild(el('span', 'ui-field__label', 'Listar'));
-      const selMesF = el('select', 'ui-select');
-      const optMesAtivo = el('option', null, 'Mês ativo (' + (st.config.mesAtual || '—') + ')');
-      optMesAtivo.value = '';
-      const optTodos = el('option', null, 'Todos os meses');
-      optTodos.value = '__todos__';
-      selMesF.appendChild(optMesAtivo);
-      selMesF.appendChild(optTodos);
-      selMesF.value = filtroMesPropostas;
-      selMesF.addEventListener('change', function () {
-        filtroMesPropostas = selMesF.value;
-        paint();
-      });
-      fMes.appendChild(selMesF);
-      top.appendChild(fMes);
-      wrap.appendChild(top);
-
-      const ops = minhasOps(st);
-      const tw = el('div', 'ui-table-wrap');
-      const tbl = el('table', 'ui-table');
-      const thead = el('thead');
-      const hr = el('tr');
-      ['Data', 'Cliente', 'Tipo', 'Status', 'Valor financiado', ''].forEach(function (h) {
-        hr.appendChild(el('th', null, h));
-      });
-      thead.appendChild(hr);
-      tbl.appendChild(thead);
-      const tb = el('tbody');
-      if (!ops.length) {
-        const tr = el('tr');
-        const td = el('td', null, 'Nenhuma proposta sua ainda.');
-        td.colSpan = 6;
-        tr.appendChild(td);
-        tb.appendChild(tr);
-      } else {
-        ops.forEach(function (o) {
-          const tr = el('tr');
-          tr.appendChild(el('td', null, o.data || '—'));
-          tr.appendChild(el('td', null, o.clienteNome || '—'));
-          tr.appendChild(el('td', null, MO.TIPO_LABEL[o.tipoOperacao] || o.tipoOperacao));
-          const stc = el('td', null);
-          const sp = el('span', MO.classeBadgeStatus(o.status), MO.labelStatus(o.tipoOperacao, o.status));
-          stc.appendChild(sp);
-          tr.appendChild(stc);
-          tr.appendChild(el('td', null, formatBRL(o.valorContrato)));
-          const ta = el('td', null);
-          const b1 = el('button', 'ui-btn ui-btn--ghost ui-btn--sm', 'Editar');
-          b1.type = 'button';
-          b1.addEventListener('click', function () {
-            editingId = o.id;
-            paint();
-          });
-          ta.appendChild(b1);
-          const next = MO.proximoStatusNoFluxo(o.tipoOperacao, o.status);
-          if (next && o.status !== 'CANCELADO') {
-            const b2 = el('button', 'ui-btn ui-btn--ghost ui-btn--sm', 'Avançar status');
-            b2.type = 'button';
-            b2.addEventListener('click', function () {
-              if (
-                global.MaycredData.updateOperacaoSeDono(o.id, { status: next }, vid)
-              ) {
-                toast('Status atualizado.', 'success');
-                paint();
-              } else toast('Não foi possível atualizar.', 'error');
-            });
-            ta.appendChild(b2);
-          }
-          const b3 = el('button', 'ui-btn ui-btn--danger ui-btn--sm', 'Excluir');
-          b3.type = 'button';
-          b3.addEventListener('click', function () {
-            if (!global.confirm('Excluir esta proposta?')) return;
-            if (global.MaycredData.removeOperacaoSeDono(o.id, vid)) {
-              toast('Proposta excluída.', 'info');
-              if (editingId === o.id) editingId = null;
-              paint();
-            } else toast('Não foi possível excluir.', 'error');
-          });
-          ta.appendChild(b3);
-          tr.appendChild(ta);
-          tb.appendChild(tr);
-        });
-      }
-      tbl.appendChild(tb);
-      tw.appendChild(tbl);
-      wrap.appendChild(tw);
-
-      const opEdit = editingId
-        ? st.operacoes.find(function (x) {
-            return x.id === editingId && String(x.vendedoraId) === String(vid);
-          })
-        : null;
-      if (editingId && !opEdit) {
-        editingId = null;
-        paint();
-        return;
-      }
-
-      const formHost = el('div', 'ui-config-block ui-vend-prop-form');
-      formHost.appendChild(
-        el('h4', 'ui-config-block__title', opEdit ? 'Editar proposta' : 'Registrar proposta'),
-      );
-
-      const form = el('form', 'ui-lanc-proposta-form');
-      function sec(title) {
-        const b = el('div', 'ui-config-block ui-lanc-sec');
-        b.appendChild(el('h3', 'ui-config-block__title', title));
-        return b;
-      }
-      function fieldGrid(parent) {
-        const g = el('div', 'ui-form-grid ui-form-grid--2');
-        parent.appendChild(g);
-        return g;
-      }
-
-      const s1 = sec('Dados da operação');
-      const g1 = fieldGrid(s1);
-
-      const fData = el('div', 'ui-field');
-      fData.appendChild(el('span', 'ui-field__label', 'Data da operação *'));
-      const inpData = el('input', 'ui-input');
-      inpData.type = 'date';
-      inpData.required = true;
-      inpData.value = opEdit ? opEdit.data : Cal.hojeLocal();
-      fData.appendChild(inpData);
-      g1.appendChild(fData);
-
-      const fTipo = el('div', 'ui-field');
-      fTipo.appendChild(el('span', 'ui-field__label', 'Tipo *'));
-      const selTipo = el('select', 'ui-select');
-      MO.TIPOS.forEach(function (t) {
-        const o = el('option', null, MO.TIPO_LABEL[t]);
-        o.value = t;
-        selTipo.appendChild(o);
-      });
-      if (opEdit) selTipo.value = opEdit.tipoOperacao;
-      fTipo.appendChild(selTipo);
-      g1.appendChild(fTipo);
-
-      const fBanco = el('div', 'ui-field');
-      fBanco.appendChild(el('span', 'ui-field__label', 'Banco parceiro *'));
-      const selBanco = el('select', 'ui-select');
-      const seen = {};
-      (st.bancos || []).forEach(function (b) {
-        if (b.ativo === false) return;
-        seen[b.nome] = true;
-        const ob = el('option', null, b.nome);
-        ob.value = b.nome;
-        selBanco.appendChild(ob);
-      });
-      if (!seen['Outros']) {
-        const ob = el('option', null, 'Outros');
-        ob.value = 'Outros';
-        selBanco.appendChild(ob);
-      }
-      if (!selBanco.options.length) {
-        BANCOS_PARCEIROS.forEach(function (nome) {
-          const ob = el('option', null, nome);
-          ob.value = nome;
-          selBanco.appendChild(ob);
-        });
-      }
-      if (opEdit && opEdit.bancoParceiro) selBanco.value = opEdit.bancoParceiro;
-      fBanco.appendChild(selBanco);
-      g1.appendChild(fBanco);
-
-      const fProm = el('div', 'ui-field');
-      fProm.appendChild(el('span', 'ui-field__label', 'Promotora *'));
-      const selProm = el('select', 'ui-select');
-      (st.promotoras || []).forEach(function (p) {
-        if (p.ativo === false) return;
-        const op = el('option', null, p.nome);
-        op.value = p.id;
-        selProm.appendChild(op);
-      });
-      if (opEdit && opEdit.promotoraId) {
-        const has = Array.prototype.some.call(selProm.options, function (o) {
-          return o.value === opEdit.promotoraId;
-        });
-        if (has) selProm.value = opEdit.promotoraId;
-        else if (selProm.options.length) selProm.selectedIndex = 0;
-      } else if (selProm.options.length) selProm.selectedIndex = 0;
-      fProm.appendChild(selProm);
-      g1.appendChild(fProm);
-
-      const fTab = el('div', 'ui-field');
-      fTab.style.gridColumn = '1 / -1';
-      fTab.appendChild(el('span', 'ui-field__label', 'Tabela (para contar na meta)'));
-      const selTab = el('select', 'ui-select');
-      const opt0 = el('option', null, '— Sem tabela —');
-      opt0.value = '';
-      selTab.appendChild(opt0);
-      function refillTab() {
-        while (selTab.children.length > 1) selTab.removeChild(selTab.lastChild);
-        const nomeBanco = selBanco.value;
-        const tipoOp = selTipo.value;
-        const promId = selProm.value;
-        (st.tabelas || []).forEach(function (t) {
-          if (t.ativo === false) return;
-          if (t.tipo !== tipoOp) return;
-          if (promId && String(t.promotoraId || '') !== String(promId)) return;
-          const b = (st.bancos || []).find(function (x) {
-            return x.id === t.bancoId;
-          });
-          if (!b || b.nome !== nomeBanco) return;
-          const conv = t.convenio || global.MaycredData.formatConvenioTabela(t.nome, t.prazo);
-          const o = el('option', null, conv);
-          o.value = t.id;
-          selTab.appendChild(o);
-        });
-        if (opEdit && opEdit.tabelaId) {
-          const ex = Array.prototype.some.call(selTab.options, function (o) {
-            return o.value === opEdit.tabelaId;
-          });
-          if (ex) selTab.value = opEdit.tabelaId;
-          else selTab.value = '';
-        }
-      }
-      refillTab();
-      fTab.appendChild(selTab);
-      g1.appendChild(fTab);
-
-      const banner = el(
-        'div',
-        'ui-lanc-meta-tabela-banner',
-        'Sem tabela válida — não entra no cálculo da sua meta.',
-      );
-      banner.style.display = 'none';
-      banner.style.gridColumn = '1 / -1';
-      g1.appendChild(banner);
-
-      const fConv = el('div', 'ui-field');
-      fConv.style.gridColumn = '1 / -1';
-      fConv.appendChild(el('span', 'ui-field__label', 'Convênio *'));
-      const inpConv = el('input', 'ui-input');
-      inpConv.required = true;
-      inpConv.value = opEdit ? opEdit.convenio || '' : '';
-      fConv.appendChild(inpConv);
-      g1.appendChild(fConv);
-
-      const fNp = el('div', 'ui-field');
-      fNp.appendChild(el('span', 'ui-field__label', 'Nº proposta'));
-      const inpNp = el('input', 'ui-input');
-      inpNp.value = opEdit ? opEdit.numeroProposta || '' : '';
-      fNp.appendChild(inpNp);
-      g1.appendChild(fNp);
-
-      const fNc = el('div', 'ui-field');
-      fNc.appendChild(el('span', 'ui-field__label', 'Nº contrato'));
-      const inpNc = el('input', 'ui-input');
-      inpNc.value = opEdit ? opEdit.numeroContrato || '' : '';
-      fNc.appendChild(inpNc);
-      g1.appendChild(fNc);
-
-      const fOrig = el('div', 'ui-field');
-      fOrig.appendChild(el('span', 'ui-field__label', 'Origem'));
-      const selOrig = el('select', 'ui-select');
-      ORIGENS_VENDA.forEach(function (O) {
-        const o = el('option', null, O.t);
-        o.value = O.v;
-        selOrig.appendChild(o);
-      });
-      if (opEdit && opEdit.origemVenda) selOrig.value = opEdit.origemVenda;
-      fOrig.appendChild(selOrig);
-      g1.appendChild(fOrig);
-
-      form.appendChild(s1);
-
-      const s2 = sec('Cliente');
-      const g2 = fieldGrid(s2);
-
-      const fPick = el('div', 'ui-field');
-      fPick.style.gridColumn = '1 / -1';
-      fPick.appendChild(el('span', 'ui-field__label', 'Usar cadastro'));
-      const selCli = el('select', 'ui-select');
-      selCli.appendChild(el('option', null, '— Digitar manualmente —'));
-      selCli.options[0].value = '';
-      global.MaycredData.listClientes().forEach(function (c) {
-        if (c.ativo === false) return;
-        const o = el('option', null, c.nome + ' · ' + formatCpfInput(c.cpf));
-        o.value = c.id;
-        selCli.appendChild(o);
-      });
-      if (opEdit && opEdit.clienteId) {
-        const hasC = Array.prototype.some.call(selCli.options, function (o) {
-          return o.value === opEdit.clienteId;
-        });
-        if (hasC) selCli.value = opEdit.clienteId;
-      }
-      fPick.appendChild(selCli);
-      g2.appendChild(fPick);
-
-      const fNome = el('div', 'ui-field');
-      fNome.style.gridColumn = '1 / -1';
-      fNome.appendChild(el('span', 'ui-field__label', 'Nome *'));
-      const inpNome = el('input', 'ui-input');
-      inpNome.required = true;
-      inpNome.value = opEdit ? opEdit.clienteNome || '' : '';
-      fNome.appendChild(inpNome);
-      g2.appendChild(fNome);
-
-      const fCpf = el('div', 'ui-field');
-      fCpf.appendChild(el('span', 'ui-field__label', 'CPF *'));
-      const inpCpf = el('input', 'ui-input');
-      inpCpf.required = true;
-      inpCpf.value = opEdit ? formatCpfInput(opEdit.clienteCpf || '') : '';
-      inpCpf.addEventListener('input', function () {
-        inpCpf.value = formatCpfInput(onlyDigits(inpCpf.value));
-      });
-      fCpf.appendChild(inpCpf);
-      g2.appendChild(fCpf);
-
-      const fBen = el('div', 'ui-field');
-      fBen.appendChild(el('span', 'ui-field__label', 'Benefício INSS *'));
-      const inpBen = el('input', 'ui-input');
-      inpBen.required = true;
-      inpBen.value = opEdit ? opEdit.beneficioInss || '' : '';
-      fBen.appendChild(inpBen);
-      g2.appendChild(fBen);
-
-      const fEsp = el('div', 'ui-field');
-      fEsp.appendChild(el('span', 'ui-field__label', 'Espécie *'));
-      const selEsp = el('select', 'ui-select');
-      ESPECIES_BENEFICIO.forEach(function (E) {
-        const o = el('option', null, E.t);
-        o.value = E.v;
-        selEsp.appendChild(o);
-      });
-      if (opEdit && opEdit.especieBeneficio) selEsp.value = opEdit.especieBeneficio;
-      fEsp.appendChild(selEsp);
-      g2.appendChild(fEsp);
-
-      const fUf = el('div', 'ui-field');
-      fUf.appendChild(el('span', 'ui-field__label', 'UF'));
-      const selUf = el('select', 'ui-select');
-      UFS_BR.forEach(function (uf) {
-        const o = el('option', null, uf || '—');
-        o.value = uf;
-        selUf.appendChild(o);
-      });
-      if (opEdit && opEdit.ufBeneficio) selUf.value = opEdit.ufBeneficio;
-      fUf.appendChild(selUf);
-      g2.appendChild(fUf);
-
-      const fSal = el('div', 'ui-field');
-      fSal.appendChild(el('span', 'ui-field__label', 'Benefício bruto (R$)'));
-      const inpSal = el('input', 'ui-input');
-      inpSal.type = 'number';
-      inpSal.step = '0.01';
-      inpSal.value =
-        opEdit && opEdit.salarioBeneficioBruto != null
-          ? String(opEdit.salarioBeneficioBruto)
-          : '';
-      fSal.appendChild(inpSal);
-      g2.appendChild(fSal);
-
-      const fMar = el('div', 'ui-field');
-      fMar.appendChild(el('span', 'ui-field__label', 'Margem (R$)'));
-      const inpMar = el('input', 'ui-input');
-      inpMar.type = 'number';
-      inpMar.step = '0.01';
-      inpMar.value =
-        opEdit && opEdit.margemDisponivel != null ? String(opEdit.margemDisponivel) : '';
-      fMar.appendChild(inpMar);
-      g2.appendChild(fMar);
-
-      selCli.addEventListener('change', function () {
-        const id = selCli.value;
-        if (!id) return;
-        const c = global.MaycredData.getClienteById(id);
-        if (c) {
-          inpNome.value = c.nome;
-          inpCpf.value = formatCpfInput(c.cpf);
-        }
-      });
-
-      form.appendChild(s2);
-
-      const s3 = sec('Financeiro');
-      const g3 = fieldGrid(s3);
-      const fVal = el('div', 'ui-field');
-      fVal.appendChild(el('span', 'ui-field__label', 'Valor financiado (R$) *'));
-      const inpVal = el('input', 'ui-input');
-      inpVal.type = 'number';
-      inpVal.step = '0.01';
-      inpVal.required = true;
-      inpVal.value = opEdit ? String(opEdit.valorContrato) : '';
-      fVal.appendChild(inpVal);
-      g3.appendChild(fVal);
-
-      const fPrazo = el('div', 'ui-field');
-      fPrazo.appendChild(el('span', 'ui-field__label', 'Prazo *'));
-      const inpPrazo = el('input', 'ui-input');
-      inpPrazo.type = 'number';
-      inpPrazo.min = '1';
-      inpPrazo.required = true;
-      inpPrazo.value = opEdit && opEdit.prazoParcelas ? String(opEdit.prazoParcelas) : '';
-      fPrazo.appendChild(inpPrazo);
-      g3.appendChild(fPrazo);
-
-      const fTaxa = el('div', 'ui-field');
-      fTaxa.appendChild(el('span', 'ui-field__label', 'Taxa % a.m. *'));
-      const inpTaxa = el('input', 'ui-input');
-      inpTaxa.type = 'number';
-      inpTaxa.step = '0.01';
-      inpTaxa.required = true;
-      inpTaxa.value =
-        opEdit && (opEdit.taxaJurosMes != null || opEdit.taxaJurosMes === 0)
-          ? String(opEdit.taxaJurosMes)
-          : '';
-      fTaxa.appendChild(inpTaxa);
-      g3.appendChild(fTaxa);
-
-      const fVp = el('div', 'ui-field');
-      fVp.appendChild(el('span', 'ui-field__label', 'Parcela (R$)'));
-      const inpVp = el('input', 'ui-input ui-input--readonly');
-      inpVp.readOnly = true;
-      fVp.appendChild(inpVp);
-      g3.appendChild(fVp);
-
-      const fVl = el('div', 'ui-field');
-      fVl.appendChild(el('span', 'ui-field__label', 'Liberado (R$)'));
-      const inpVl = el('input', 'ui-input');
-      inpVl.type = 'number';
-      inpVl.step = '0.01';
-      inpVl.value =
-        opEdit && opEdit.valorLiberadoCliente != null ? String(opEdit.valorLiberadoCliente) : '';
-      fVl.appendChild(inpVl);
-      g3.appendChild(fVl);
-
-      const fPort = el('div', 'ui-field ui-lanc-port-extra');
-      fPort.style.gridColumn = '1 / -1';
-      fPort.appendChild(el('span', 'ui-field__label', 'PORT / PORT+REFIN'));
-      const gPort = el('div', 'ui-form-grid ui-form-grid--2');
-      const selBo = el('select', 'ui-select');
-      BANCOS_PARCEIROS.forEach(function (nome) {
-        const obo = el('option', null, nome);
-        obo.value = nome;
-        selBo.appendChild(obo);
-      });
-      const inpSd = el('input', 'ui-input');
-      inpSd.type = 'number';
-      inpSd.step = '0.01';
-      gPort.appendChild(selBo);
-      gPort.appendChild(inpSd);
-      fPort.appendChild(gPort);
-      g3.appendChild(fPort);
-
-      const fRefin = el('div', 'ui-field ui-lanc-refin-extra');
-      fRefin.style.gridColumn = '1 / -1';
-      fRefin.appendChild(el('span', 'ui-field__label', 'Refinanciamento (R$)'));
-      const inpRefin = el('input', 'ui-input');
-      inpRefin.type = 'number';
-      inpRefin.step = '0.01';
-      fRefin.appendChild(inpRefin);
-      g3.appendChild(fRefin);
-
-      if (opEdit) {
-        if (opEdit.bancoOrigem) selBo.value = opEdit.bancoOrigem;
-        inpSd.value =
-          opEdit.saldoDevedorPortado != null ? String(opEdit.saldoDevedorPortado) : '';
-        inpRefin.value =
-          opEdit.valorRefinanciamento != null ? String(opEdit.valorRefinanciamento) : '';
-      }
-
-      const boxHint = el('div', 'ui-lanc-analise-live');
-      form.appendChild(s3);
-
-      function syncPort() {
-        const t = selTipo.value;
-        const port = t === 'PORT' || t === 'PORT_REFIN';
-        fPort.style.display = port ? '' : 'none';
-        fRefin.style.display = t === 'PORT_REFIN' ? '' : 'none';
-        selBo.required = port;
-        inpSd.required = port;
-        inpRefin.required = t === 'PORT_REFIN';
-      }
-
-      function updateMetaBanner() {
-        const vf = parseFloat(inpVal.value);
-        const tipo = selTipo.value;
-        const opLike = { tipoOperacao: tipo, tabelaId: '', comissaoTabela: undefined };
-        if (selTab.value) {
-          opLike.tabelaId = selTab.value;
-          const tab = (st.tabelas || []).find(function (x) {
-            return x.id === selTab.value;
-          });
-          if (tab && tab.comissao != null) opLike.comissaoTabela = Number(tab.comissao);
-        } else if (opEdit && opEdit.tabelaId) {
-          opLike.tabelaId = String(opEdit.tabelaId);
-          if (opEdit.comissaoTabela != null) opLike.comissaoTabela = Number(opEdit.comissaoTabela);
-        }
-        const okMeta = MO.propostaContaRentabilidadeMeta(opLike);
-        banner.style.display = okMeta ? 'none' : '';
-        const fluxo = MO.fluxoDoTipo(tipo);
-        const imp = MO.impactoMetaPorStatus(fluxo, selStatus.value);
-        clear(boxHint);
-        if (okMeta) {
-          boxHint.appendChild(
-            el(
-              'div',
-              'ui-lanc-analise-live__line',
-              'Conta na meta: sim — impacto atual: ' + (imp.analise ? 'análise' : imp.pago ? 'pago' : '—'),
-            ),
-          );
-          boxHint.appendChild(
-            el(
-              'div',
-              'ui-lanc-analise-live__sub',
-              'Valores em reais de comissão não são exibidos nesta tela.',
-            ),
-          );
-        } else {
-          boxHint.appendChild(
-            el('div', 'ui-lanc-analise-live__line--warn', 'Não conta na meta sem tabela válida.'),
-          );
-        }
-        const pr = parseInt(inpPrazo.value, 10);
-        if (!Number.isNaN(vf) && vf > 0 && !Number.isNaN(pr) && pr > 0) {
-          inpVp.value = String(Math.round((vf / pr) * 100) / 100);
-        } else inpVp.value = '';
-      }
-
-      const s4 = sec('Status');
-      const g4 = fieldGrid(s4);
-      const fStat = el('div', 'ui-field');
-      fStat.appendChild(el('span', 'ui-field__label', 'Status *'));
-      const selStatus = el('select', 'ui-select');
-      function refillStatus() {
-        const tipo = selTipo.value;
-        const fluxo = MO.fluxoDoTipo(tipo);
-        const opts = MO.statusValidos(fluxo);
-        selStatus.innerHTML = '';
-        opts.forEach(function (s) {
-          const o = el('option', null, MO.labelStatus(tipo, s));
-          o.value = s;
-          selStatus.appendChild(o);
-        });
-        if (opEdit && opEdit.tipoOperacao === tipo) selStatus.value = opEdit.status;
-        else selStatus.value = MO.statusPadraoParaTipo(tipo);
-      }
-      refillStatus();
-      fStat.appendChild(selStatus);
-      g4.appendChild(fStat);
-
-      const fAver = el('div', 'ui-field');
-      fAver.appendChild(el('span', 'ui-field__label', 'Averbação'));
-      const inpAver = el('input', 'ui-input');
-      inpAver.type = 'date';
-      inpAver.value = opEdit ? opEdit.dataAverbacao || '' : '';
-      fAver.appendChild(inpAver);
-      g4.appendChild(fAver);
-
-      const fPag = el('div', 'ui-field');
-      fPag.appendChild(el('span', 'ui-field__label', 'Pagamento'));
-      const inpPag = el('input', 'ui-input');
-      inpPag.type = 'date';
-      inpPag.value = opEdit ? opEdit.dataPagamento || '' : '';
-      fPag.appendChild(inpPag);
-      g4.appendChild(fPag);
-
-      const fObs = el('div', 'ui-field');
-      fObs.style.gridColumn = '1 / -1';
-      fObs.appendChild(el('span', 'ui-field__label', 'Obs.'));
-      const txObs = el('textarea', 'ui-input ui-textarea');
-      txObs.rows = 2;
-      txObs.value = opEdit ? opEdit.obs || '' : '';
-      fObs.appendChild(txObs);
-      g4.appendChild(fObs);
-
-      form.appendChild(s4);
-      s3.appendChild(boxHint);
-
-      selTipo.addEventListener('change', function () {
-        if (!editingId) refillStatus();
-        syncPort();
-        refillTab();
-        updateMetaBanner();
-      });
-      selStatus.addEventListener('change', updateMetaBanner);
-      selBanco.addEventListener('change', function () {
-        refillTab();
-        updateMetaBanner();
-      });
-      selProm.addEventListener('change', function () {
-        refillTab();
-        updateMetaBanner();
-      });
-      selTab.addEventListener('change', function () {
-        const id = selTab.value;
-        if (id) {
-          const t = (st.tabelas || []).find(function (x) {
-            return x.id === id;
-          });
-          if (t) {
-            inpConv.value = t.convenio || global.MaycredData.formatConvenioTabela(t.nome, t.prazo);
-            inpPrazo.value = String(t.prazo);
-            inpTaxa.value = String(t.taxa);
-          }
-        }
-        updateMetaBanner();
-      });
-      inpVal.addEventListener('input', updateMetaBanner);
-      inpPrazo.addEventListener('input', updateMetaBanner);
-
-      syncPort();
-      updateMetaBanner();
-
-      const tact = el('div', 'ui-flex-gap');
-      const btnSub = el('button', 'ui-btn ui-btn--primary', opEdit ? 'Salvar' : 'Registrar');
-      btnSub.type = 'submit';
-      const btnCancel = el('button', 'ui-btn ui-btn--secondary', 'Fechar formulário');
-      btnCancel.type = 'button';
-      btnCancel.style.display = editingId || opEdit ? 'inline-flex' : 'none';
-      btnCancel.addEventListener('click', function () {
-        editingId = null;
-        paint();
-      });
-      tact.appendChild(btnSub);
-      tact.appendChild(btnCancel);
-      form.appendChild(tact);
-
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const tipo = selTipo.value;
-        const status = selStatus.value;
-        if (!MO.statusValidoParaTipo(tipo, status)) {
-          toast('Status inválido.', 'error');
-          return;
-        }
-        const cpfOk = onlyDigits(inpCpf.value);
-        if (cpfOk.length !== 11) {
-          toast('CPF inválido.', 'error');
-          return;
-        }
-        const valor = parseFloat(inpVal.value);
-        if (Number.isNaN(valor) || valor <= 0) {
-          toast('Valor financiado obrigatório.', 'error');
-          return;
-        }
-        const prazo = parseInt(inpPrazo.value, 10);
-        if (Number.isNaN(prazo) || prazo < 1) {
-          toast('Prazo inválido.', 'error');
-          return;
-        }
-        const taxa = parseFloat(inpTaxa.value);
-        if (Number.isNaN(taxa) || taxa < 0) {
-          toast('Taxa inválida.', 'error');
-          return;
-        }
-        if (!inpConv.value.trim()) {
-          toast('Preencha o convênio.', 'error');
-          return;
-        }
-        if (!selProm.value) {
-          toast('Promotora obrigatória.', 'error');
-          return;
-        }
-        const port = tipo === 'PORT' || tipo === 'PORT_REFIN';
-        if (port) {
-          const sd = parseFloat(inpSd.value);
-          if (Number.isNaN(sd) || sd < 0) {
-            toast('Saldo devedor obrigatório.', 'error');
-            return;
-          }
-        }
-        if (tipo === 'PORT_REFIN') {
-          const rf = parseFloat(inpRefin.value);
-          if (Number.isNaN(rf) || rf < 0) {
-            toast('Refinanciamento obrigatório.', 'error');
-            return;
-          }
-        }
-
-        let tabelaIdOut = '';
-        let comissaoTabOut = null;
-        if (selTab.value) {
-          const tab = (st.tabelas || []).find(function (x) {
-            return x.id === selTab.value;
-          });
-          if (tab) {
-            tabelaIdOut = tab.id;
-            comissaoTabOut = tab.comissao;
-          }
-        }
-        const promRow = (st.promotoras || []).find(function (x) {
-          return x.id === selProm.value;
-        });
-        const parcela = prazo > 0 ? Math.round((valor / prazo) * 100) / 100 : undefined;
-
-        const base = {
-          vendedoraId: vid,
-          data: inpData.value,
-          tipoOperacao: tipo,
-          status: status,
-          valorContrato: valor,
-          bancoParceiro: selBanco.value,
-          convenio: inpConv.value.trim(),
-          tabelaId: tabelaIdOut,
-          comissaoTabela: comissaoTabOut,
-          promotoraId: selProm.value || '',
-          promotoraNome: promRow ? promRow.nome : '',
-          numeroProposta: inpNp.value.trim(),
-          numeroContrato: inpNc.value.trim(),
-          origemVenda: selOrig.value,
-          clienteNome: inpNome.value.trim(),
-          clienteCpf: cpfOk,
-          clienteId: selCli.value.trim() || '',
-          beneficioInss: inpBen.value.trim(),
-          especieBeneficio: selEsp.value,
-          ufBeneficio: selUf.value,
-          salarioBeneficioBruto: parseFloat(inpSal.value),
-          margemDisponivel: parseFloat(inpMar.value),
-          prazoParcelas: prazo,
-          taxaJurosMes: taxa,
-          valorParcela: parcela,
-          valorLiberadoCliente: parseFloat(inpVl.value),
-          dataAverbacao: inpAver.value || '',
-          dataPagamento: inpPag.value || '',
-          obs: txObs.value.trim(),
-          referencia: inpNome.value.trim(),
-        };
-        if (Number.isNaN(base.salarioBeneficioBruto)) delete base.salarioBeneficioBruto;
-        if (Number.isNaN(base.margemDisponivel)) delete base.margemDisponivel;
-        if (Number.isNaN(base.valorLiberadoCliente)) delete base.valorLiberadoCliente;
-
-        if (port) {
-          base.bancoOrigem = selBo.value;
-          base.saldoDevedorPortado = parseFloat(inpSd.value);
-          base.bancoDestino = selBanco.value;
-        } else {
-          base.bancoOrigem = '';
-          base.bancoDestino = '';
-          base.saldoDevedorPortado = undefined;
-        }
-        if (tipo === 'PORT_REFIN') {
-          base.valorRefinanciamento = parseFloat(inpRefin.value);
-        } else {
-          base.valorRefinanciamento = undefined;
-        }
-
-        const st2 = global.MaycredData.getState();
-        if (opEdit) {
-          if (!global.MaycredData.updateOperacaoSeDono(editingId, base, vid)) {
-            toast('Não autorizado.', 'error');
-            return;
-          }
-          if (propostaDuplicadaVend(global.MaycredData.getState(), base, editingId, vid)) {
-            toast('Atenção: possível duplicata (mesmo CPF e banco no mês).', 'info');
-          } else toast('Proposta atualizada.', 'success');
-          editingId = null;
-        } else {
-          base.id = global.MaycredData.newId('op');
-          global.MaycredData.addOperacaoComoVendedora(base, vid);
-          if (propostaDuplicadaVend(global.MaycredData.getState(), base, base.id, vid)) {
-            toast('Atenção: possível duplicata (mesmo CPF e banco no mês).', 'info');
-          } else toast('Proposta registrada.', 'success');
-        }
-        paint();
-      });
-
-      formHost.appendChild(form);
-      wrap.appendChild(formHost);
-      container.appendChild(wrap);
-    }
-
-    paint();
-  }
-
   function renderPipeline(container) {
     const vid = global.MaycredAuth.getVendedoraIdOperacional();
     if (!vid) {
@@ -1221,7 +380,7 @@
         el(
           'p',
           'ui-muted ui-pipeline-hint',
-          'Cada correspondente vê apenas os próprios registros. Clique no card para editar, agendar retornos e registrar atendimentos. Arraste para mudar a etapa. Valores em R$ são estimativa de operação.',
+          'Cada correspondente vê apenas os próprios registros. No card ou no modal marque se vendeu ou não; use o funil para o andamento. Agendamentos e histórico de contato ficam no modal. Valores em R$ são estimativa.',
         ),
       );
       const btnRestore = el('button', 'ui-btn ui-btn--secondary ui-btn--sm', 'Restaurar nomes originais das etapas');
@@ -1351,18 +510,17 @@
           const t2 = el('div', 'ui-pipeline-card__vend', self.nome || '');
           const t3 = el('div', 'ui-pipeline-card__val', formatBRL(L.valorEstimado));
           const sla = pipelineSlaLine(etapa, L);
+          card.appendChild(t0);
+          card.appendChild(t1);
+          card.appendChild(t2);
+          card.appendChild(t3);
+          if (L.etapa === 'fechado') {
+            card.appendChild(el('div', 'ui-pipeline-card__res ui-pipeline-card__res--sim', 'Vendido'));
+          } else if (L.etapa === 'perdido') {
+            card.appendChild(el('div', 'ui-pipeline-card__res ui-pipeline-card__res--nao', 'Não vendido'));
+          }
           if (sla) {
-            const ts = el('div', 'ui-pipeline-card__sla', sla);
-            card.appendChild(t0);
-            card.appendChild(t1);
-            card.appendChild(t2);
-            card.appendChild(t3);
-            card.appendChild(ts);
-          } else {
-            card.appendChild(t0);
-            card.appendChild(t1);
-            card.appendChild(t2);
-            card.appendChild(t3);
+            card.appendChild(el('div', 'ui-pipeline-card__sla', sla));
           }
           listEl.appendChild(card);
         });
@@ -1519,7 +677,36 @@
         grid.appendChild(mf('Previsão de fechamento', mPrev));
         panDados.appendChild(grid);
 
-        const labFunil = el('div', 'ui-field__label', 'Etapa do funil');
+        const labRes = el('div', 'ui-field__label', 'Vendeu? (resultado da operação)');
+        labRes.style.marginTop = '0.75rem';
+        panDados.appendChild(labRes);
+        const selResultado = el('select', 'ui-select ui-pipeline-resultado-sel');
+        const oAnd = el('option', null, 'Ainda em andamento no funil');
+        oAnd.value = 'andamento';
+        const oVend = el('option', null, 'Sim — vendido / liberado');
+        oVend.value = 'fechado';
+        const oNao = el('option', null, 'Não vendido');
+        oNao.value = 'perdido';
+        selResultado.appendChild(oAnd);
+        selResultado.appendChild(oVend);
+        selResultado.appendChild(oNao);
+        function syncResultadoSel() {
+          if (etapaSel === 'fechado') selResultado.value = 'fechado';
+          else if (etapaSel === 'perdido') selResultado.value = 'perdido';
+          else selResultado.value = 'andamento';
+        }
+        selResultado.addEventListener('change', function () {
+          const v = selResultado.value;
+          if (v === 'fechado') etapaSel = 'fechado';
+          else if (v === 'perdido') etapaSel = 'perdido';
+          else if (etapaSel === 'fechado' || etapaSel === 'perdido') etapaSel = 'diagnostico';
+          paintChips();
+          syncResultadoSel();
+        });
+        panDados.appendChild(selResultado);
+        syncResultadoSel();
+
+        const labFunil = el('div', 'ui-field__label', 'Etapa no funil (enquanto em andamento)');
         labFunil.style.marginTop = '0.75rem';
         panDados.appendChild(labFunil);
         const chips = el('div', 'ui-pipeline-etapa-chips');
@@ -1531,6 +718,7 @@
             if (!c) return;
             c.classList.toggle('ui-pipeline-etapa-chip--active', k === etapaSel);
           });
+          syncResultadoSel();
         }
         chipKeys.forEach(function (k) {
           const c = el('button', 'ui-pipeline-etapa-chip', labels[k] || k);
@@ -1870,9 +1058,6 @@
       case 'vendClientes':
         renderClientes(container);
         break;
-      case 'vendPropostas':
-        renderPropostas(container);
-        break;
       case 'vendDesempenho':
       default:
         renderDesempenho(container);
@@ -1881,6 +1066,6 @@
 
   global.MaycredVendUI = {
     paint: paint,
-    TELAS: ['vendDesempenho', 'vendPipeline', 'vendClientes', 'vendPropostas'],
+    TELAS: ['vendDesempenho', 'vendPipeline', 'vendClientes'],
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -42,7 +42,6 @@
     ['vendDesempenho', 'Desempenho'],
     ['vendPipeline', 'Pipeline'],
     ['vendClientes', 'Clientes'],
-    ['vendPropostas', 'Propostas'],
   ];
 
   /** Mesmas chaves que MaycredVendUI — não depender só do objeto (fallback se cache antigo). */
@@ -50,7 +49,6 @@
     'vendDesempenho',
     'vendPipeline',
     'vendClientes',
-    'vendPropostas',
   ];
 
   function navigateVendedora(tela) {
@@ -81,7 +79,7 @@
   }
 
   function navigate(tela) {
-    if (tela === 'vendSimulador') tela = 'vendDesempenho';
+    if (tela === 'vendSimulador' || tela === 'vendPropostas') tela = 'vendDesempenho';
     if (MaycredAuth.isVendedoraCampo()) {
       navigateVendedora(tela);
       return;
@@ -148,7 +146,6 @@
       case 'vendDesempenho':
       case 'vendPipeline':
       case 'vendClientes':
-      case 'vendPropostas':
         if (MaycredAuth.hasPainelGestor()) {
           MaycredVendUI.paint(content, telaIr);
         }
@@ -370,7 +367,7 @@
       selG.id = 'app-header-gestor-vid';
       selG.className = 'ui-input app-header__gestor-select';
       selG.title =
-        'Dados de Desempenho, Pipeline, Clientes e Propostas passam a ser deste cadastro (visão do gestor).';
+        'Dados de Desempenho, Pipeline e Clientes passam a ser deste cadastro (visão do gestor).';
       function refillGestorSelect() {
         selG.innerHTML = '';
         const vs = MaycredData.getState().vendedoras || [];

@@ -71,6 +71,7 @@
    * @property {string} senhaGestor
    * @property {number} spreadBanco
    * @property {number} custoOperacionalMes
+   * @property {string} [dataControleProducao] - YYYY-MM-DD — “data dos dados” (referência da planilha)
    */
 
   /**
@@ -160,6 +161,17 @@
    * @property {Promotora[]} promotoras
    * @property {TabelaBanco[]} tabelas
    * @property {Record<string, Record<string, boolean>>} permissoesPerfil - telas por perfil ADM/LIDER (Venda não usa estas rotas)
+   * @property {Record<string, Record<string, ProducaoManualLinha>>} [producaoManual] - YYYY-MM → vendedoraId → valores da planilha (substituem soma de propostas/lançamentos quando ativo)
+   */
+
+  /**
+   * @typedef {Object} ProducaoManualLinha
+   * @property {boolean} ativo
+   * @property {number} [brutoAnalise] - bruto em análise (R$)
+   * @property {number} [analiseLiquido] - rentabilidade em análise (R$); se omitido, usa brutoAnalise × taxa do produto
+   * @property {number} [pago] - rentabilidade paga (R$)
+   * @property {number} [totalBruto] - total bruto do mês (R$); se >0, usado como produção bruta; senão usa brutoAnalise
+   * @property {number} [prodMesAnterior] - referência “prod. mês anterior” (R$), só exibição / controle
    */
 
   /**
@@ -204,6 +216,7 @@
       senhaGestor: '1234',
       spreadBanco: 0,
       custoOperacionalMes: 0,
+      dataControleProducao: '',
     };
   }
 
@@ -602,6 +615,45 @@
     };
   }
 
+  /** @param {unknown} raw */
+  function normalizeProducaoManualLinha(raw) {
+    const row = raw && typeof raw === 'object' ? /** @type {Record<string, unknown>} */ (raw) : {};
+    function num(k) {
+      const v = row[k];
+      if (v === '' || v === null || v === undefined) return undefined;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    }
+    return {
+      ativo: !!row.ativo,
+      brutoAnalise: num('brutoAnalise'),
+      analiseLiquido: num('analiseLiquido'),
+      pago: num('pago'),
+      totalBruto: num('totalBruto'),
+      prodMesAnterior: num('prodMesAnterior'),
+    };
+  }
+
+  /** @param {unknown} raw */
+  function mergeProducaoManual(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    const src = /** @type {Record<string, unknown>} */ (raw);
+    /** @type {Record<string, Record<string, ReturnType<typeof normalizeProducaoManualLinha>>>} */
+    const out = {};
+    Object.keys(src).forEach(function (mes) {
+      const block = src[mes];
+      if (!block || typeof block !== 'object') return;
+      const bo = /** @type {Record<string, unknown>} */ (block);
+      out[mes] = {};
+      Object.keys(bo).forEach(function (vid) {
+        const n = normalizeProducaoManualLinha(bo[vid]);
+        if (n.ativo) out[mes][vid] = n;
+      });
+      if (Object.keys(out[mes]).length === 0) delete out[mes];
+    });
+    return out;
+  }
+
   /** @returns {AppState} */
   function emptyState() {
     const promotoras = defaultPromotoras().map(normalizePromotoraRow);
@@ -618,6 +670,7 @@
       bancos: bancos.map(normalizeBancoRow),
       tabelas: defaultTabelas(bancos, promotoras).map(normalizeTabelaRow),
       permissoesPerfil: defaultPermissoesPerfil(),
+      producaoManual: {},
     };
   }
 
@@ -693,6 +746,8 @@
       ? /** @type {unknown[]} */ (o.clientes).filter(Boolean).map(normalizeClienteRow)
       : base.clientes;
 
+    const producaoManual = mergeProducaoManual(o.producaoManual);
+
     return {
       config,
       vendedoras,
@@ -705,6 +760,7 @@
       promotoras,
       tabelas,
       permissoesPerfil,
+      producaoManual,
     };
   }
 
@@ -737,6 +793,13 @@
   }
   ensureConfigOperacoes(cache.config);
   if (!Array.isArray(cache.operacoes)) cache.operacoes = [];
+  if (!cache.producaoManual || typeof cache.producaoManual !== 'object') {
+    cache.producaoManual = {};
+    saveState(cache);
+  }
+  if (cache.config.dataControleProducao === undefined || cache.config.dataControleProducao === null) {
+    cache.config.dataControleProducao = '';
+  }
   if (!Array.isArray(cache.clientes)) {
     cache.clientes = [];
     saveState(cache);
@@ -797,6 +860,7 @@
       promotoras: (cache.promotoras || []).map((p) => ({ ...p })),
       tabelas: (cache.tabelas || []).map((t) => normalizeTabelaRow(t)),
       permissoesPerfil: mergePermissoesPerfil(cache.permissoesPerfil),
+      producaoManual: JSON.parse(JSON.stringify(cache.producaoManual && typeof cache.producaoManual === 'object' ? cache.producaoManual : {})),
     };
   }
 
@@ -1213,6 +1277,24 @@
     }).length;
   }
 
+  /**
+   * Grava a planilha manual de produção do mês (por vendedora). Só persistem linhas com `ativo: true`.
+   * @param {string} mes - YYYY-MM
+   * @param {Record<string, Record<string, unknown>>} map
+   */
+  function setProducaoManualMes(mes, map) {
+    const m = String(mes);
+    if (!cache.producaoManual) cache.producaoManual = {};
+    const next = {};
+    Object.keys(map || {}).forEach(function (vid) {
+      const n = normalizeProducaoManualLinha(map[vid]);
+      if (n.ativo) next[String(vid)] = n;
+    });
+    if (Object.keys(next).length === 0) delete cache.producaoManual[m];
+    else cache.producaoManual[m] = next;
+    persist();
+  }
+
   /** Rótulos dos perfis na UI. */
   const PERFIL_ACESSO_LABEL = { ADM: 'Administrador (ADM)', LIDER: 'Líder', VENDA: 'Venda' };
 
@@ -1271,6 +1353,7 @@
     saveTabela,
     getTabelaById,
     countOperacoesByTabelaId,
+    setProducaoManualMes,
     formatConvenioTabela,
     canonicalRotaPerm,
     rotaPermitidaParaPerfil,

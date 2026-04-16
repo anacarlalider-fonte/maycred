@@ -3,6 +3,19 @@
  */
 (function (global) {
   /**
+   * @param {object} bundle
+   * @param {string} mes
+   * @param {string} vendedoraId
+   */
+  function readProducaoManualAtivo(bundle, mes, vendedoraId) {
+    const pm = bundle && bundle.producaoManual && typeof bundle.producaoManual === 'object' ? bundle.producaoManual[String(mes)] : null;
+    if (!pm) return null;
+    const row = pm[String(vendedoraId)];
+    if (!row || !row.ativo) return null;
+    return row;
+  }
+
+  /**
    * @param {{ produto: 'PORT'|'ENTRANTE' }} vendedora
    * @param {number} comissaoPort
    * @param {number} comissaoEntrante
@@ -65,6 +78,24 @@
       } else if (l.tipo === 'pago') {
         pago += v;
       }
+    }
+
+    const manual = readProducaoManualAtivo(bundle, mes, vendedora.id);
+    if (manual) {
+      const taxa = taxaComissaoVendedora(vendedora, comissaoPort, comissaoEntrante);
+      const tb = typeof manual.totalBruto === 'number' && !Number.isNaN(manual.totalBruto) ? manual.totalBruto : 0;
+      const ba = typeof manual.brutoAnalise === 'number' && !Number.isNaN(manual.brutoAnalise) ? manual.brutoAnalise : 0;
+      producaoBruta = tb > 0 ? tb : ba;
+      const alRaw = manual.analiseLiquido;
+      if (typeof alRaw === 'number' && !Number.isNaN(alRaw)) {
+        analise = alRaw;
+      } else if (ba > 0) {
+        analise = ba * taxa;
+      } else {
+        analise = 0;
+      }
+      const pg = manual.pago;
+      pago = typeof pg === 'number' && !Number.isNaN(pg) ? pg : 0;
     }
 
     const metaProducao = meta && typeof meta.metaProducao === 'number' ? meta.metaProducao : 0;
@@ -210,9 +241,12 @@
       const meta = metas.find((m) => m.vendedoraId === v.id && m.mes === mes) || null;
       const lancs = list.filter((l) => l.vendedoraId === v.id && l.mes === mes);
       const row = calcVendedora(v, meta, mes, lancs, bundle);
-      const nOpsProducaoV =
+      let nOpsProducaoV =
         lancs.filter((l) => l.tipo === 'producao').length +
         opsList.filter((o) => o.vendedoraId === v.id && o.mes === mes).length;
+      if (readProducaoManualAtivo(bundle, mes, v.id) && (row.producaoBruta > 0 || row.total > 0)) {
+        nOpsProducaoV = Math.max(1, nOpsProducaoV);
+      }
       linhas.push({ vendedora: v, meta, lancamentos: lancs, row, nOpsProducao: nOpsProducaoV });
     }
 

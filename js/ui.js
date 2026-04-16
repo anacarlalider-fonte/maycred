@@ -519,7 +519,7 @@
       trPhase.appendChild(phaseTh('ui-producao-phase-head--averb', 3, 'Averbada / pago'));
       trPhase.appendChild(phaseTh('', 3, 'Total (soma)'));
       thead.appendChild(trPhase);
-      const hr = el('tr');
+      const hr = el('tr', 'ui-producao-head-cols');
       [
         'Vendedora',
         'DISC',
@@ -587,7 +587,7 @@
         g.volTot += row.producaoBruta;
         g.rentTot += row.total;
 
-        const tr = el('tr');
+        const tr = el('tr', v.produto === 'PORT' ? 'ui-producao-row--port' : 'ui-producao-row--entrante');
 
         const vendCell = el('td', null);
         vendCell.setAttribute('data-label', 'Vendedora');
@@ -737,7 +737,14 @@
       tw.appendChild(totBar);
 
       function subLinhaFases(titulo, a) {
-        const tr = el('tr');
+        const tr = el(
+          'tr',
+          titulo === 'PORT'
+            ? 'ui-producao-row--port'
+            : titulo === 'ENTRANTE'
+              ? 'ui-producao-row--entrante'
+              : 'ui-producao-row--total-resumo',
+        );
         tr.appendChild(el('td', 'ui-mono', titulo));
         tr.appendChild(moneyCellRead('META pr.', a.metaVol));
         tr.appendChild(pctReceitaSobreProducao('% meta', a.metaRent, a.metaVol));
@@ -790,7 +797,7 @@
         rentTot: agg.PORT.rentTot + agg.ENTRANTE.rentTot,
       };
       const trT = subLinhaFases('TOTAL', totAgg);
-      trT.className = 'ui-producao-total-geral';
+      trT.classList.add('ui-producao-total-geral');
       tb2.appendChild(trT);
       t2.appendChild(tb2);
       twResumo.appendChild(el('h3', 'ui-dash-subtitle', 'Resumo por produto (mesmas fases)'));

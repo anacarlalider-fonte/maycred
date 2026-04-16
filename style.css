@@ -1218,6 +1218,9 @@ pre,
 
 .ui-producao-total-geral td {
   font-weight: 600;
+}
+
+.ui-table--producao-resumo-por-produto-inner tr.ui-producao-total-geral > td {
   background: var(--may-navy-mid);
 }
 
@@ -1292,7 +1295,7 @@ pre,
     display: block;
     margin-top: 0.65rem;
     padding: 0.45rem 0.35rem;
-    background: var(--may-navy-mid);
+    background: transparent;
     border-radius: var(--radius);
     border: 1px solid var(--border2);
   }
@@ -1356,6 +1359,131 @@ pre,
   color: var(--text);
 }
 
+/* Planilha produção: corpo com tom mais claro por estágio (alinhado aos cabeçais de fase) + faixa por produto */
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(1),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(2),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(3) {
+  background: rgba(15, 31, 58, 0.72);
+  color: var(--text2);
+}
+
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(4),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(5),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(6) {
+  background: rgba(22, 48, 78, 0.68);
+  color: var(--text2);
+}
+
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(7),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(8),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(9) {
+  background: rgba(46, 160, 130, 0.22);
+  color: var(--text);
+}
+
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(10),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(11),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(12) {
+  background: rgba(99, 140, 220, 0.22);
+  color: var(--text);
+}
+
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(13),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(14),
+.ui-table--producao-planilha thead .ui-producao-head-cols th:nth-child(15) {
+  background: rgba(28, 52, 88, 0.75);
+  color: var(--text2);
+}
+
+.ui-table--producao-planilha tbody tr.ui-producao-row--port > td:nth-child(1),
+.ui-table--producao-planilha tbody tr.ui-producao-row--port > td:nth-child(2),
+.ui-table--producao-planilha tbody tr.ui-producao-row--port > td:nth-child(3) {
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.ui-table--producao-planilha tbody tr.ui-producao-row--entrante > td:nth-child(1),
+.ui-table--producao-planilha tbody tr.ui-producao-row--entrante > td:nth-child(2),
+.ui-table--producao-planilha tbody tr.ui-producao-row--entrante > td:nth-child(3) {
+  background: rgba(34, 197, 94, 0.11);
+}
+
+.ui-table--producao-planilha tbody tr.ui-producao-row--port > td:nth-child(4),
+.ui-table--producao-planilha tbody tr.ui-producao-row--port > td:nth-child(5),
+.ui-table--producao-planilha tbody tr.ui-producao-row--port > td:nth-child(6) {
+  background: rgba(0, 180, 210, 0.09);
+}
+
+.ui-table--producao-planilha tbody tr.ui-producao-row--entrante > td:nth-child(4),
+.ui-table--producao-planilha tbody tr.ui-producao-row--entrante > td:nth-child(5),
+.ui-table--producao-planilha tbody tr.ui-producao-row--entrante > td:nth-child(6) {
+  background: rgba(34, 160, 90, 0.1);
+}
+
+.ui-table--producao-planilha tbody tr > td:nth-child(7),
+.ui-table--producao-planilha tbody tr > td:nth-child(8),
+.ui-table--producao-planilha tbody tr > td:nth-child(9) {
+  background: rgba(46, 160, 130, 0.12);
+}
+
+.ui-table--producao-planilha tbody tr > td:nth-child(10),
+.ui-table--producao-planilha tbody tr > td:nth-child(11),
+.ui-table--producao-planilha tbody tr > td:nth-child(12) {
+  background: rgba(99, 140, 220, 0.14);
+}
+
+.ui-table--producao-planilha tbody tr > td:nth-child(13),
+.ui-table--producao-planilha tbody tr > td:nth-child(14),
+.ui-table--producao-planilha tbody tr > td:nth-child(15) {
+  background: rgba(32, 58, 98, 0.55);
+}
+
+.ui-table--producao-planilha tbody tr > td:nth-child(13).ui-producao-soma-nao-editavel,
+.ui-table--producao-planilha tbody tr > td:nth-child(15).ui-producao-soma-nao-editavel {
+  background: rgba(40, 68, 110, 0.58);
+}
+
+/* Rodapé TOTAL GERAL: mesma leitura por estágio */
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(1) {
+  background: rgba(15, 31, 58, 0.85);
+}
+
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(2),
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(3),
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(4) {
+  background: rgba(22, 48, 78, 0.78);
+}
+
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(5),
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(6),
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(7) {
+  background: rgba(46, 160, 130, 0.18);
+}
+
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(8),
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(9),
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(10) {
+  background: rgba(99, 140, 220, 0.2);
+}
+
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(11),
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(12),
+.ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(13) {
+  background: rgba(36, 62, 102, 0.82);
+}
+
+/* Resumo por produto: blocos PORT / ENTRANTE */
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-row--port > td {
+  background: rgba(0, 200, 230, 0.07);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-row--entrante > td {
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.ui-table--producao-resumo-por-produto-inner tbody tr.ui-producao-row--total-resumo > td {
+  background: rgba(28, 52, 88, 0.65);
+}
+
 .ui-table--metas-dual {
   min-width: 44rem;
 }
@@ -1377,7 +1505,6 @@ pre,
 }
 
 .ui-table--producao-planilha .ui-producao-soma-nao-editavel {
-  background: rgba(255, 255, 255, 0.03);
   font-weight: 600;
 }
 

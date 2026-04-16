@@ -1249,6 +1249,9 @@ pre,
   width: 100%;
   min-width: 78rem;
   table-layout: auto;
+  border-collapse: separate;
+  /* Espaço entre blocos de fase (colunas) e um pouco entre linhas */
+  border-spacing: 8px 6px;
 }
 
 .ui-producao-pct-cell {
@@ -1332,7 +1335,9 @@ pre,
   letter-spacing: 0.06em;
   text-align: center;
   vertical-align: middle;
-  padding: 0.45rem 0.35rem;
+  padding: 0.5rem 0.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
   border-bottom: 1px solid var(--border);
 }
 
@@ -1369,6 +1374,11 @@ pre,
 
 .ui-table--producao-planilha .ui-producao-input-cell {
   vertical-align: middle;
+}
+
+.ui-table--producao-planilha .ui-producao-soma-nao-editavel {
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 600;
 }
 
 .ui-table--producao-resumo thead th {
@@ -1930,6 +1940,26 @@ pre,
   border-radius: var(--radius);
   background: var(--surface);
   max-width: 24rem;
+}
+
+.ui-dias-prod-block {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.ui-dias-prod-block:first-of-type {
+  margin-top: 0.5rem;
+  padding-top: 0;
+  border-top: none;
+}
+
+.ui-dias-prod-block__title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--may-gold-bright);
+  letter-spacing: 0.02em;
 }
 
 .maycred-cal {

@@ -159,7 +159,8 @@
    * @property {Meta[]} metas
    * @property {Lancamento[]} lancamentos
    * @property {OperacaoMaycred[]} operacoes
-   * @property {Record<string, string[]>} diasUteis
+   * @property {Record<string, string[]>} diasUteis — espelho legado do calendário Portabilidade (PORT)
+   * @property {{ ENTRANTE: Record<string, string[]>, PORT: Record<string, string[]> }} diasUteisPorProduto — Novo vs Portabilidade
    * @property {BancoParceiro[]} bancos
    * @property {Promotora[]} promotoras
    * @property {TabelaBanco[]} tabelas
@@ -365,6 +366,7 @@
    * Dias úteis Abril/2025 (seg–sex).
    * @returns {Record<string, string[]>}
    */
+  /** @returns {Record<string, string[]>} */
   function defaultDiasUteis() {
     return {
       '2025-04': [
@@ -392,6 +394,19 @@
         '2025-04-30',
       ],
     };
+  }
+
+  /** @param {unknown} rec */
+  function cloneStrArrRecord(rec) {
+    /** @type {Record<string, string[]>} */
+    const out = {};
+    if (!rec || typeof rec !== 'object' || Array.isArray(rec)) return out;
+    const o = /** @type {Record<string, unknown>} */ (rec);
+    Object.keys(o).forEach(function (k) {
+      const arr = o[k];
+      if (Array.isArray(arr)) out[k] = arr.map(function (x) { return String(x); });
+    });
+    return out;
   }
 
   /** @returns {BancoParceiro[]} */
@@ -691,6 +706,7 @@
   function emptyState() {
     const promotoras = defaultPromotoras().map(normalizePromotoraRow);
     const bancos = defaultBancos();
+    const du = defaultDiasUteis();
     return {
       config: defaultConfig(),
       vendedoras: defaultVendedoras().map(normalizeVendedoraRow),
@@ -698,7 +714,11 @@
       lancamentos: defaultLancamentos(),
       operacoes: [],
       clientes: [],
-      diasUteis: defaultDiasUteis(),
+      diasUteis: cloneStrArrRecord(du),
+      diasUteisPorProduto: {
+        ENTRANTE: cloneStrArrRecord(du),
+        PORT: cloneStrArrRecord(du),
+      },
       promotoras: promotoras,
       bancos: bancos.map(normalizeBancoRow),
       tabelas: defaultTabelas(bancos, promotoras).map(normalizeTabelaRow),
@@ -736,10 +756,32 @@
       ? /** @type {OperacaoMaycred[]} */ (o.operacoes).filter(Boolean).map(normalizeOperacaoRow)
       : base.operacoes;
 
-    const diasUteis =
+    const diasUteisMerged =
       o.diasUteis && typeof o.diasUteis === 'object' && !Array.isArray(o.diasUteis)
-        ? /** @type {Record<string, string[]>} */ ({ ...base.diasUteis, ...o.diasUteis })
-        : base.diasUteis;
+        ? /** @type {Record<string, string[]>} */ ({ ...base.diasUteis, ...cloneStrArrRecord(o.diasUteis) })
+        : cloneStrArrRecord(base.diasUteis);
+
+    const rawDup =
+      o.diasUteisPorProduto && typeof o.diasUteisPorProduto === 'object' && !Array.isArray(o.diasUteisPorProduto)
+        ? /** @type {Record<string, unknown>} */ (o.diasUteisPorProduto)
+        : null;
+    let mapE = rawDup && rawDup.ENTRANTE ? cloneStrArrRecord(rawDup.ENTRANTE) : {};
+    let mapP = rawDup && rawDup.PORT ? cloneStrArrRecord(rawDup.PORT) : {};
+
+    Object.keys(diasUteisMerged).forEach(function (mes) {
+      const leg = Array.isArray(diasUteisMerged[mes]) ? [...diasUteisMerged[mes]] : [];
+      if (!mapE[mes] || mapE[mes].length === 0) mapE[mes] = leg.length ? [...leg] : [];
+      if (!mapP[mes] || mapP[mes].length === 0) mapP[mes] = leg.length ? [...leg] : [];
+    });
+    Object.keys(mapE).forEach(function (mes) {
+      if (!mapP[mes] || mapP[mes].length === 0) mapP[mes] = [...mapE[mes]];
+    });
+    Object.keys(mapP).forEach(function (mes) {
+      if (!mapE[mes] || mapE[mes].length === 0) mapE[mes] = [...mapP[mes]];
+    });
+
+    const diasUteisPorProduto = { ENTRANTE: mapE, PORT: mapP };
+    const diasUteis = cloneStrArrRecord(mapP);
 
     const bancos =
       Array.isArray(o.bancos) && o.bancos.length > 0
@@ -789,6 +831,7 @@
       operacoes,
       clientes,
       diasUteis,
+      diasUteisPorProduto,
       bancos,
       promotoras,
       tabelas,
@@ -814,6 +857,12 @@
   }
 
   let cache = loadState();
+
+  if (!cache.diasUteisPorProduto || typeof cache.diasUteisPorProduto !== 'object') {
+    const leg = cloneStrArrRecord(cache.diasUteis || {});
+    cache.diasUteisPorProduto = { ENTRANTE: cloneStrArrRecord(leg), PORT: cloneStrArrRecord(leg) };
+    saveState(cache);
+  }
 
   if (!cache.permissoesPerfil) {
     cache.permissoesPerfil = defaultPermissoesPerfil();
@@ -887,8 +936,20 @@
       operacoes: cache.operacoes.map((o) => ({ ...o })),
       clientes: (cache.clientes || []).map((c) => ({ ...normalizeClienteRow(c) })),
       diasUteis: Object.fromEntries(
-        Object.entries(cache.diasUteis).map(([k, arr]) => [k, [...arr]])
+        Object.entries(cache.diasUteis || {}).map(([k, arr]) => [k, [...arr]])
       ),
+      diasUteisPorProduto: {
+        ENTRANTE: Object.fromEntries(
+          Object.entries((cache.diasUteisPorProduto && cache.diasUteisPorProduto.ENTRANTE) || {}).map(function (e) {
+            return [e[0], [...e[1]]];
+          })
+        ),
+        PORT: Object.fromEntries(
+          Object.entries((cache.diasUteisPorProduto && cache.diasUteisPorProduto.PORT) || {}).map(function (e) {
+            return [e[0], [...e[1]]];
+          })
+        ),
+      },
       bancos: (cache.bancos || []).map((b) => ({ ...b })),
       promotoras: (cache.promotoras || []).map((p) => ({ ...p })),
       tabelas: (cache.tabelas || []).map((t) => normalizeTabelaRow(t)),
@@ -1195,11 +1256,49 @@
     return true;
   }
 
-  /** @param {string} mes - YYYY-MM
+  /**
+   * @param {string} mes - YYYY-MM
+   * @param {'ENTRANTE'|'PORT'} produto — Novo (ENTRANTE) ou Portabilidade (PORT)
+   * @returns {string[]|null} ordenado ou null para cair no padrão seg–sex do calendário
+   */
+  function getDiasUteisMesPorProduto(mes, produto) {
+    const m = String(mes);
+    const prod = produto === 'ENTRANTE' ? 'ENTRANTE' : 'PORT';
+    const block = cache.diasUteisPorProduto && cache.diasUteisPorProduto[prod];
+    const arr = block && block[m];
+    if (Array.isArray(arr) && arr.length > 0) return [...arr].sort();
+    const leg = cache.diasUteis && cache.diasUteis[m];
+    if (Array.isArray(leg) && leg.length > 0) return [...leg].sort();
+    return null;
+  }
+
+  /**
+   * @param {string} mes - YYYY-MM
+   * @param {'ENTRANTE'|'PORT'} produto
    * @param {string[]} datas
    */
+  function setDiasUteisMesPorProduto(mes, produto, datas) {
+    if (!cache.diasUteisPorProduto || typeof cache.diasUteisPorProduto !== 'object') {
+      cache.diasUteisPorProduto = { ENTRANTE: {}, PORT: {} };
+    }
+    const prod = produto === 'ENTRANTE' ? 'ENTRANTE' : 'PORT';
+    const d = [...datas];
+    cache.diasUteisPorProduto[prod] = { ...cache.diasUteisPorProduto[prod], [mes]: d };
+    if (prod === 'PORT') cache.diasUteis = { ...cache.diasUteis, [mes]: d };
+    persist();
+  }
+
+  /** @param {string} mes - YYYY-MM
+   * @param {string[]} datas — replica o mesmo calendário em Novo e Portabilidade (atalho legado)
+   */
   function setDiasUteisMes(mes, datas) {
-    cache.diasUteis = { ...cache.diasUteis, [mes]: [...datas] };
+    const d = [...datas];
+    if (!cache.diasUteisPorProduto || typeof cache.diasUteisPorProduto !== 'object') {
+      cache.diasUteisPorProduto = { ENTRANTE: {}, PORT: {} };
+    }
+    cache.diasUteisPorProduto.ENTRANTE = { ...cache.diasUteisPorProduto.ENTRANTE, [mes]: d };
+    cache.diasUteisPorProduto.PORT = { ...cache.diasUteisPorProduto.PORT, [mes]: d };
+    cache.diasUteis = { ...cache.diasUteis, [mes]: d };
     persist();
   }
 
@@ -1376,6 +1475,8 @@
     addCliente,
     updateCliente,
     removeCliente,
+    getDiasUteisMesPorProduto,
+    setDiasUteisMesPorProduto,
     setDiasUteisMes,
     resetToDefaults,
     newId,

@@ -305,6 +305,20 @@
       const pctRaw = row.pctGestor;
       const pctProd = row.metaProducaoTotal > 0 ? row.pctMetaProducaoTotal : 0;
       const atingiu = metaRent > 0 && row.total >= metaRent;
+      const prodKey = v.produto === 'PORT' ? 'PORT' : 'ENTRANTE';
+      const diasProd = global.MaycredCalendar.getDiasUteisDoMes(mes, prodKey);
+      const dRest = global.MaycredCalendar.diasUteisRestantes(diasProd);
+      const dTot = global.MaycredCalendar.diasUteisTotais(diasProd);
+      const faltaR = Math.max(0, row.faltaRent);
+      const faltaP = Math.max(0, row.faltaProducao);
+      const ritmoRent =
+        metaRent > 0
+          ? global.MaycredCalc.calcMetaDiaria(faltaR, dRest, metaRent, dTot)
+          : null;
+      const ritmoVol =
+        metaVol > 0
+          ? global.MaycredCalc.calcMetaDiaria(faltaP, dRest, metaVol, dTot)
+          : null;
       const faixa = atingiu ? 'dourado' : global.MaycredCalc.faixaDesempenhoVendedora(Math.min(100, pctRaw));
 
       const card = el('article', 'ui-rent-card ui-rent-card--' + faixa);
@@ -352,6 +366,30 @@
           ),
         );
       }
+      if (!atingiu && metaRent > 0 && ritmoRent && ritmoRent.metaDiaria > 0) {
+        card.appendChild(
+          el(
+            'div',
+            'ui-rent-card__foot ui-muted',
+            'Ritmo rentabilidade: ' +
+              formatBRL(ritmoRent.metaDiaria) +
+              ' / dia útil restante · calendário ' +
+              (prodKey === 'PORT' ? 'Portabilidade' : 'Novo'),
+          ),
+        );
+      }
+      if (metaVol > 0 && !Number.isNaN(row.faltaProducao) && row.faltaProducao > 0 && ritmoVol && ritmoVol.metaDiaria > 0) {
+        card.appendChild(
+          el(
+            'div',
+            'ui-rent-card__foot ui-muted',
+            'Ritmo volume: ' +
+              formatBRL(ritmoVol.metaDiaria) +
+              ' / dia útil restante · calendário ' +
+              (prodKey === 'PORT' ? 'Portabilidade' : 'Novo'),
+          ),
+        );
+      }
 
       grid.appendChild(card);
     });
@@ -367,7 +405,7 @@
       el(
         'p',
         'ui-muted',
-        'Em cada fase: valor produzido (R$), taxa automática receita ÷ produção (%), e receita (R$). A % é a comissão efetiva sobre o produzido naquele estágio. Objetivo = metas de volume e rentabilidade com a mesma taxa entre elas. As % usam os valores já salvos no cálculo; após editar células, salve para atualizar. Produção averbada vazia = total menos análise.',
+        'Em cada fase: valor produzido (R$), taxa automática receita ÷ produção (%), e receita (R$). Total produção e total receita são só leitura (soma / resultado do cálculo). Ao salvar, o total em R$ gravado é produção em análise + produção averbada (quando averbada informada). Salve para atualizar % e totais.',
       ),
     );
 
@@ -634,22 +672,14 @@
         tdPg.appendChild(inPg);
         tr.appendChild(tdPg);
 
-        const tdTB = el('td', 'ui-producao-input-cell');
-        tdTB.setAttribute('data-label', 'Total produção (R$)');
-        const inTB = moneyInput('');
-        inTB.dataset.field = 'totalBruto';
-        inTB.value =
-          man && man.totalBruto != null && !Number.isNaN(Number(man.totalBruto))
-            ? formatMoneyBrInput(Number(man.totalBruto))
-            : row.producaoBruta > 0
-              ? formatMoneyBrInput(Math.round(row.producaoBruta * 100) / 100)
-              : '';
-        wireProducaoMoneyInput(inTB);
-        tdTB.appendChild(inTB);
-        tr.appendChild(tdTB);
+        const tdTotP = moneyCellRead('Total produção (R$)', row.producaoBruta);
+        tdTotP.className = (tdTotP.className ? tdTotP.className + ' ' : '') + 'ui-producao-soma-nao-editavel';
+        tr.appendChild(tdTotP);
         tr.appendChild(pctReceitaSobreProducao('% total (rec./prod.)', row.total, row.producaoBruta));
 
-        tr.appendChild(moneyCellRead('Total receita — soma (R$)', row.total));
+        const tdTotR = moneyCellRead('Total receita — soma (R$)', row.total);
+        tdTotR.className = (tdTotR.className ? tdTotR.className + ' ' : '') + 'ui-producao-soma-nao-editavel';
+        tr.appendChild(tdTotR);
 
         if (!inBA.value && row.producaoBruta > 0) {
           inBA.value = formatMoneyBrInput(Math.round(row.producaoBruta * 100) / 100);
@@ -658,7 +688,8 @@
           inAL.value = formatMoneyBrInput(Math.round(row.analise * 100) / 100);
         }
 
-        sumTotalProducaoCampos += parseMoneyBR(inTB.value);
+        const pb = Number(row.producaoBruta);
+        sumTotalProducaoCampos += Number.isFinite(pb) ? pb : 0;
         const rtTot = Number(row.total);
         sumTotalReceitaCampos += Number.isFinite(rtTot) ? rtTot : 0;
 
@@ -795,13 +826,18 @@
           }
           global.MaycredData.upsertMeta(upMeta);
           /** @type {Record<string, unknown>} */
+          const baSave = parseMoneyBR(q('brutoAnalise') && q('brutoAnalise').value);
+          let totalBrutoSave = baSave;
+          if (inBAV && String(inBAV.value).trim() !== '') {
+            totalBrutoSave = baSave + parseMoneyBR(inBAV.value);
+          }
           const rowMap = {
             ativo: true,
-            brutoAnalise: parseMoneyBR(q('brutoAnalise') && q('brutoAnalise').value),
+            brutoAnalise: baSave,
             analiseLiquido:
               inAL && String(inAL.value).trim() !== '' ? parseMoneyBR(inAL.value) : undefined,
             pago: parseMoneyBR(q('pago') && q('pago').value),
-            totalBruto: parseMoneyBR(q('totalBruto') && q('totalBruto').value),
+            totalBruto: totalBrutoSave,
           };
           if (inBAV && String(inBAV.value).trim() !== '') {
             rowMap.brutoAverbado = parseMoneyBR(inBAV.value);
@@ -1493,7 +1529,7 @@
       el(
         'p',
         'ui-muted',
-        'Mês no topo. Meta produção: alvo em R$ de volume financiado (total no mês). Meta averbação: alvo só da parte averbada (opcional; 0 = não exibe % meta averbação isolada). Meta rentabilidade: alvo em R$ de comissão que a empresa recebe (propostas com tabela e %). O dashboard mostra % de rentabilidade e, se preenchida, % da meta de produção.',
+        'Mês no topo. Meta produção: alvo em R$ de volume financiado (total no mês). Meta averbação: alvo só da parte averbada (opcional; 0 = não exibe % meta averbação isolada). Meta rentabilidade: alvo em R$ de comissão que a empresa recebe (propostas com tabela e %). Colunas “/ dia útil rest.” usam o calendário de dias úteis do produto da vendedora (Novo ou Portabilidade) em Configurações → Dias úteis.',
       ),
     );
     const metasCfgHost = el('div');
@@ -1505,7 +1541,14 @@
       const tbl = el('table', 'ui-table ui-table--responsive ui-table--metas-dual');
       const thead = el('thead');
       const hr = el('tr');
-      ['Vendedora', 'Meta produção total (R$)', 'Meta averbação (R$)', 'Meta rentabilidade (R$)'].forEach(function (h) {
+      [
+        'Vendedora',
+        'Meta produção total (R$)',
+        'Meta averbação (R$)',
+        'Meta rentabilidade (R$)',
+        'Rent. / dia útil rest.',
+        'Produção / dia útil rest.',
+      ].forEach(function (h) {
         hr.appendChild(el('th', null, h));
       });
       thead.appendChild(hr);
@@ -1516,6 +1559,24 @@
           return m.vendedoraId === v.id && m.mes === mes;
         });
         const mt = global.MaycredCalc.parseMetaTargets(meta);
+        const lancsV = st.lancamentos.filter(function (l) {
+          return l.vendedoraId === v.id && l.mes === mes;
+        });
+        const rowV = global.MaycredCalc.calcVendedora(v, meta, mes, lancsV, st);
+        const prodKey = v.produto === 'PORT' ? 'PORT' : 'ENTRANTE';
+        const diasProd = global.MaycredCalendar.getDiasUteisDoMes(mes, prodKey);
+        const dRest = global.MaycredCalendar.diasUteisRestantes(diasProd);
+        const dTot = global.MaycredCalendar.diasUteisTotais(diasProd);
+        const faltaR = Math.max(0, rowV.faltaRent);
+        const faltaP = Math.max(0, rowV.faltaProducao);
+        const ritmoR =
+          mt.metaRent > 0
+            ? global.MaycredCalc.calcMetaDiaria(faltaR, dRest, mt.metaRent, dTot)
+            : null;
+        const ritmoP =
+          mt.metaVol > 0
+            ? global.MaycredCalc.calcMetaDiaria(faltaP, dRest, mt.metaVol, dTot)
+            : null;
         const tr = el('tr');
         tr.appendChild(el('td', null, v.nome));
         function inpMeta(field, val) {
@@ -1533,6 +1594,20 @@
         inpMeta('metaProducaoTotal', mt.metaVol);
         inpMeta('metaAverbacao', mt.metaAverb);
         inpMeta('metaRentabilidade', mt.metaRent);
+        tr.appendChild(
+          el(
+            'td',
+            'ui-mono',
+            ritmoR && mt.metaRent > 0 ? formatBRL(ritmoR.metaDiaria) : '—',
+          ),
+        );
+        tr.appendChild(
+          el(
+            'td',
+            'ui-mono',
+            ritmoP && mt.metaVol > 0 ? formatBRL(ritmoP.metaDiaria) : '—',
+          ),
+        );
         tbody.appendChild(tr);
       });
       tbl.appendChild(tbody);
@@ -1584,7 +1659,7 @@
       el(
         'p',
         'ui-muted',
-        'Equipe, acessos, metas mensais e calendário de dias úteis. O mês ativo segue o seletor no cabeçalho.',
+        'Equipe, acessos, metas mensais e dois calendários de dias úteis (Novo e Portabilidade). O mês ativo segue o seletor no cabeçalho.',
       ),
     );
     const tabs = el('div', 'ui-tabs');
@@ -1658,50 +1733,73 @@
       el(
         'p',
         'ui-muted',
-        'O mês é o selecionado no topo da tela. No calendário abaixo, clique em cada dia para marcar ou desmarcar como dia útil (verde = útil). Fins de semana podem ser marcados se precisar.',
+        'O mês é o selecionado no topo da tela. Há dois calendários: Novo (produto ENTRANTE) e Portabilidade (PORT). Cada um define os dias úteis usados nos cálculos de “quanto falta por dia útil” para as vendedoras daquele produto. Clique no dia para alternar útil (verde). Fins de semana podem ser marcados se precisar.',
       ),
     );
-    const host = el('div', 'ui-cal-host');
-    host.id = 'ui-cal-host-mes';
-    wrap.appendChild(host);
-    global.MaycredCalendar.renderCalendario(host, mes, function (dias) {
-      global.MaycredData.setDiasUteisMes(mes, dias);
-      paintResumo();
-    });
 
-    const resumo = el('div', 'ui-dias-resumo');
-    function paintResumo() {
-      const dias = global.MaycredCalendar.getDiasUteisDoMes(mes);
-      const tot = global.MaycredCalendar.diasUteisTotais(dias);
-      const pas = global.MaycredCalendar.diasUteisPassados(dias);
-      const rest = global.MaycredCalendar.diasUteisRestantes(dias);
-      resumo.innerHTML =
-        '<strong>Resumo</strong> — Total: ' +
-        tot +
-        ' · Passados: ' +
-        pas +
-        ' · Restantes: ' +
-        rest;
-    }
-    paintResumo();
-    wrap.appendChild(resumo);
+    /**
+     * @param {'ENTRANTE'|'PORT'} produto
+     * @param {string} title
+     */
+    function blocoCalendario(produto, title) {
+      const sec = el('div', 'ui-dias-prod-block');
+      sec.appendChild(el('h4', 'ui-dias-prod-block__title', title));
+      const host = el('div', 'ui-cal-host');
+      wrap.appendChild(sec);
+      sec.appendChild(host);
 
-    const btn = el('button', 'ui-btn ui-btn--secondary', 'Restaurar padrão');
-    btn.type = 'button';
-    btn.style.marginTop = '0.75rem';
-    btn.addEventListener('click', function () {
-      const p = mes.split('-');
-      const y = parseInt(p[0], 10);
-      const m = parseInt(p[1], 10);
-      const pad = global.MaycredCalendar.gerarDiasUteisPadrao(y, m);
-      global.MaycredData.setDiasUteisMes(mes, pad);
-      global.MaycredCalendar.renderCalendario(host, mes, function (dias) {
-        global.MaycredData.setDiasUteisMes(mes, dias);
-        paintResumo();
+      const resumo = el('div', 'ui-dias-resumo');
+      function paintResumoLocal() {
+        const dias = global.MaycredCalendar.getDiasUteisDoMes(mes, produto);
+        const tot = global.MaycredCalendar.diasUteisTotais(dias);
+        const pas = global.MaycredCalendar.diasUteisPassados(dias);
+        const rest = global.MaycredCalendar.diasUteisRestantes(dias);
+        resumo.innerHTML =
+          '<strong>Resumo</strong> — Total: ' +
+          tot +
+          ' · Passados: ' +
+          pas +
+          ' · Restantes: ' +
+          rest;
+      }
+
+      global.MaycredCalendar.renderCalendario(
+        host,
+        mes,
+        function (dias) {
+          global.MaycredData.setDiasUteisMesPorProduto(mes, produto, dias);
+          paintResumoLocal();
+        },
+        { produto: produto },
+      );
+      paintResumoLocal();
+      sec.appendChild(resumo);
+
+      const btn = el('button', 'ui-btn ui-btn--secondary', 'Restaurar padrão');
+      btn.type = 'button';
+      btn.style.marginTop = '0.75rem';
+      btn.addEventListener('click', function () {
+        const p = mes.split('-');
+        const y = parseInt(p[0], 10);
+        const m = parseInt(p[1], 10);
+        const pad = global.MaycredCalendar.gerarDiasUteisPadrao(y, m);
+        global.MaycredData.setDiasUteisMesPorProduto(mes, produto, pad);
+        global.MaycredCalendar.renderCalendario(
+          host,
+          mes,
+          function (dias) {
+            global.MaycredData.setDiasUteisMesPorProduto(mes, produto, dias);
+            paintResumoLocal();
+          },
+          { produto: produto },
+        );
+        toast('Calendário ' + title + ' restaurado (seg–sex).', 'info');
       });
-      toast('Calendário restaurado (seg–sex).', 'info');
-    });
-    wrap.appendChild(btn);
+      sec.appendChild(btn);
+    }
+
+    blocoCalendario('ENTRANTE', 'Novo');
+    blocoCalendario('PORT', 'Portabilidade');
     container.appendChild(wrap);
   }
 

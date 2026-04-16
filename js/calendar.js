@@ -1,5 +1,5 @@
 /**
- * Dias úteis (armazenados em MaycredData.diasUteis) e calendário editável.
+ * Dias úteis por produto (MaycredData.diasUteisPorProduto: Novo / Portabilidade) e calendário editável.
  */
 (function (global) {
   const DOW = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -46,14 +46,15 @@
   }
 
   /**
-   * Dias úteis salvos no localStorage ou lista padrão seg–sex.
+   * Dias úteis salvos ou lista padrão seg–sex.
    * @param {string} mes - YYYY-MM
+   * @param {'ENTRANTE'|'PORT'} [produto] — ENTRANTE = Novo, PORT = Portabilidade (default PORT)
    */
-  function getDiasUteisDoMes(mes) {
-    if (typeof global.MaycredData !== 'undefined') {
-      const st = global.MaycredData.getState();
-      const saved = st.diasUteis[mes];
-      if (Array.isArray(saved)) return [...saved].sort();
+  function getDiasUteisDoMes(mes, produto) {
+    const prod = produto === 'ENTRANTE' ? 'ENTRANTE' : 'PORT';
+    if (typeof global.MaycredData !== 'undefined' && typeof global.MaycredData.getDiasUteisMesPorProduto === 'function') {
+      const saved = global.MaycredData.getDiasUteisMesPorProduto(mes, prod);
+      if (Array.isArray(saved) && saved.length) return [...saved].sort();
     }
     const parts = String(mes).split('-');
     const y = parseInt(parts[0], 10);
@@ -131,15 +132,18 @@
    * @param {string|HTMLElement} containerIdOrEl - id no documento ou elemento DOM (recomendado passar o próprio nó).
    * @param {string} mes - YYYY-MM
    * @param {function(string[]): void} onChange
+   * @param {{ produto?: 'ENTRANTE'|'PORT' }} [opts]
    */
-  function renderCalendario(containerIdOrEl, mes, onChange) {
+  function renderCalendario(containerIdOrEl, mes, onChange, opts) {
     const mount =
       typeof containerIdOrEl === 'string'
         ? document.getElementById(containerIdOrEl)
         : containerIdOrEl;
     if (!mount || mount.nodeType !== 1) return;
 
-    let lista = [...getDiasUteisDoMes(mes)].sort();
+    const produto = opts && opts.produto === 'ENTRANTE' ? 'ENTRANTE' : 'PORT';
+
+    let lista = [...getDiasUteisDoMes(mes, produto)].sort();
     const setUtil = new Set(lista);
 
     function emit() {

@@ -359,7 +359,7 @@
       el(
         'p',
         'ui-muted',
-        'Em cada fase: valor produzido (R$), taxa automática receita ÷ produção (%), e receita (R$). Total produção e total receita são só leitura (soma / resultado do cálculo). Ao salvar, o total em R$ gravado é produção em análise + produção averbada (quando averbada informada). Salve para atualizar % e totais.',
+        'Meta produção e meta rentabilidade na coluna Objetivo vêm automaticamente de Configurações → Metas do mês (mês ativo). Em cada fase editável: valores em R$, taxa receita ÷ produção (%), e receita. Total produção e total receita são só leitura. Ao salvar, grava só a planilha de produção (análise / averbada / pago); altere metas na aba Metas do mês.',
       ),
     );
 
@@ -566,9 +566,15 @@
         tdProd.appendChild(chip);
         tr.appendChild(tdProd);
 
-        tr.appendChild(moneyFieldTd('Meta produção (R$)', 'metaVol', metaVol));
+        const tdMetaVol = moneyCellRead('Meta produção (R$)', metaVol);
+        tdMetaVol.classList.add('ui-producao-meta-auto');
+        tdMetaVol.title = 'Definido em Configurações → Metas do mês (meta produção total).';
+        tr.appendChild(tdMetaVol);
         tr.appendChild(pctReceitaSobreProducao('% meta (rent./prod.)', metaRent, metaVol));
-        tr.appendChild(moneyFieldTd('Meta rentabilidade (R$)', 'metaRent', metaRent));
+        const tdMetaRent = moneyCellRead('Meta rentabilidade (R$)', metaRent);
+        tdMetaRent.classList.add('ui-producao-meta-auto');
+        tdMetaRent.title = 'Definido em Configurações → Metas do mês.';
+        tr.appendChild(tdMetaRent);
 
         const tdBA = el('td', 'ui-producao-input-cell');
         tdBA.setAttribute('data-label', 'Produção em análise (R$)');
@@ -784,17 +790,6 @@
           }
           const inAL = q('analiseLiquido');
           const inBAV = q('brutoAverbado');
-          /** @type {{ vendedoraId: string, mes: string, metaProducaoTotal: number, metaRentabilidade?: number }} */
-          const upMeta = {
-            vendedoraId: vid,
-            mes: mes2,
-            metaProducaoTotal: parseMoneyBR(q('metaVol') && q('metaVol').value),
-          };
-          const inMR = q('metaRent');
-          if (inMR && String(inMR.value).trim() !== '') {
-            upMeta.metaRentabilidade = parseMoneyBR(inMR.value);
-          }
-          global.MaycredData.upsertMeta(upMeta);
           /** @type {Record<string, unknown>} */
           const baSave = parseMoneyBR(q('brutoAnalise') && q('brutoAnalise').value);
           let totalBrutoSave = baSave;
@@ -815,7 +810,7 @@
           map[vid] = rowMap;
         });
         global.MaycredData.setProducaoManualMes(mes2, map);
-        toast('Planilha e metas salvas. O dashboard usa estes valores.', 'success');
+        toast('Planilha salva. Metas vêm de Configurações → Metas do mês.', 'success');
         if (global.MaycredApp && typeof global.MaycredApp.refreshCurrent === 'function') {
           global.MaycredApp.refreshCurrent();
         }

@@ -1791,6 +1791,12 @@ pre,
   font-weight: 600;
 }
 
+/* Metas do Objetivo: só leitura, puxadas de Config → Metas do mês */
+.ui-table--producao-planilha tbody tr > td.ui-producao-meta-auto {
+  color: #0c1220;
+  font-weight: 600;
+}
+
 /* Rodapé TOTAL GERAL: 1ª célula = ident (colspan 3); 2–4 objetivo; 5–7 análise; 8–10 averb.; 11–13 total */
 .ui-table--producao-planilha tfoot tr.ui-producao-total-geral > td:nth-child(1) {
   background: var(--producao-ident-solid-head);

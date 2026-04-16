@@ -305,6 +305,80 @@
     dashHead.appendChild(headLeft);
     container.appendChild(dashHead);
 
+    const team = snap.team;
+    const diasTeam = global.MaycredCalendar.mergeDiasUteisMesProdutos(mes);
+    const restTeam = global.MaycredCalendar.diasUteisRestantes(diasTeam);
+    const totTeam = global.MaycredCalendar.diasUteisTotais(diasTeam);
+    const faltaTeam = Math.max(0, Number(team.faltaTotal) || 0);
+    const metaTeam = Math.max(0, Number(team.metaTotal) || 0);
+    const acumTeam = Math.max(0, Number(team.totalTotal) || 0);
+    const paceTeam =
+      metaTeam > 0
+        ? global.MaycredCalc.calcMetaDiaria(faltaTeam, restTeam, metaTeam, totTeam)
+        : { metaDiaria: 0, ritmoMedio: 0, status: 'ok' };
+    const semanaTeam = paceTeam.metaDiaria * 5;
+
+    const pacePanel = el('section', 'ui-dash-panel ui-dash-pace');
+    pacePanel.appendChild(
+      el('h3', 'ui-dash-panel__title', 'Ritmo para bater a meta de rentabilidade (time)'),
+    );
+    pacePanel.appendChild(
+      el(
+        'p',
+        'ui-dash-hint ui-dash-hint--rent',
+        'Acumulado no mês (em análise + pago, mesma base do % nos cards) já descontado da meta. ' +
+          'Por dia útil = falta ÷ dias úteis restantes. Por semana = ritmo diário × 5 (semana típica). ' +
+          'Dias restantes = união dos calendários Novo e Portabilidade em Configurações → Dias úteis.',
+      ),
+    );
+    if (metaTeam <= 0) {
+      pacePanel.appendChild(
+        el('p', 'ui-muted', 'Defina a meta de rentabilidade das vendedoras em Configurações → Metas do mês.'),
+      );
+    } else {
+      const metaRow = el('div', 'ui-dash-pace-meta');
+      metaRow.appendChild(el('span', null, 'Acumulado: '));
+      metaRow.appendChild(el('strong', null, formatBRL(acumTeam)));
+      metaRow.appendChild(el('span', null, ' · Meta do time: '));
+      metaRow.appendChild(el('strong', null, formatBRL(metaTeam)));
+      metaRow.appendChild(el('span', null, ' · Falta: '));
+      metaRow.appendChild(el('strong', null, formatBRL(faltaTeam)));
+      metaRow.appendChild(el('span', null, ' · Dias úteis restantes: '));
+      metaRow.appendChild(el('strong', null, String(restTeam)));
+      pacePanel.appendChild(metaRow);
+
+      const paceGrid = el('div', 'ui-dash-pace-grid');
+      function paceCell(label, value, sub) {
+        const c = el('div', 'ui-dash-pace-item');
+        c.appendChild(el('div', 'ui-dash-pace-label', label));
+        c.appendChild(el('div', 'ui-dash-pace-val', value));
+        if (sub) c.appendChild(el('div', 'ui-dash-pace-sub', sub));
+        return c;
+      }
+      if (faltaTeam <= 0) {
+        paceGrid.appendChild(
+          paceCell('Situação', 'Meta atingida', 'Rentabilidade acumulada ≥ soma das metas do time.'),
+        );
+      } else {
+        const avisoCrit =
+          paceTeam.status === 'critico'
+            ? restTeam === 0
+              ? 'Sem dias úteis restantes no mês — revise o calendário ou a meta.'
+              : 'Ritmo acima do planejado linear — atenção.'
+            : null;
+        paceGrid.appendChild(paceCell('Média necessária por dia útil', formatBRL(paceTeam.metaDiaria), avisoCrit));
+        paceGrid.appendChild(
+          paceCell(
+            'Média necessária por semana (5 du)',
+            formatBRL(semanaTeam),
+            'Projeção: 5 × valor diário acima.',
+          ),
+        );
+      }
+      pacePanel.appendChild(paceGrid);
+    }
+    container.appendChild(pacePanel);
+
     const sorted = snap.linhas.slice().sort(function (a, b) {
       return b.row.pctGestor - a.row.pctGestor;
     });
@@ -344,6 +418,36 @@
       trk.appendChild(fl);
       bar.appendChild(trk);
       card.appendChild(bar);
+
+      if (metaRent > 0) {
+        const prodCal = v.produto === 'ENTRANTE' ? 'ENTRANTE' : 'PORT';
+        const diasV = global.MaycredCalendar.getDiasUteisDoMes(mes, prodCal);
+        const restV = global.MaycredCalendar.diasUteisRestantes(diasV);
+        const totV = global.MaycredCalendar.diasUteisTotais(diasV);
+        const faltaV = Math.max(0, Number(row.faltaRent) || 0);
+        const paceV = global.MaycredCalc.calcMetaDiaria(faltaV, restV, metaRent, totV);
+        const foot = el('div', 'ui-rent-card__foot');
+        if (faltaV <= 0) {
+          foot.classList.add('ui-rent-card__foot--ok');
+          foot.textContent = 'Meta de rentabilidade já atingida no acumulado.';
+        } else if (restV <= 0) {
+          foot.textContent =
+            'Sem dias úteis restantes no calendário ' +
+            (prodCal === 'PORT' ? 'Portabilidade' : 'Novo') +
+            '. Falta ' +
+            formatBRL(faltaV) +
+            ' — ajuste dias úteis ou a meta.';
+        } else {
+          foot.textContent =
+            'Para fechar a meta: ' +
+            formatBRL(paceV.metaDiaria) +
+            ' / dia útil · ' +
+            formatBRL(paceV.metaDiaria * 5) +
+            ' / sem. (5 du) · falta ' +
+            formatBRL(faltaV);
+        }
+        card.appendChild(foot);
+      }
 
       grid.appendChild(card);
     });

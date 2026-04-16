@@ -96,6 +96,26 @@
   }
 
   /**
+   * União dos dias úteis Novo (ENTRANTE) e Portabilidade (PORT) no mês — ordenado YYYY-MM-DD.
+   * Usado no dashboard do time para um único denominador de “dias restantes”.
+   * @param {string} mes - YYYY-MM
+   * @returns {string[]}
+   */
+  function mergeDiasUteisMesProdutos(mes) {
+    const dE = getDiasUteisDoMes(mes, 'ENTRANTE');
+    const dP = getDiasUteisDoMes(mes, 'PORT');
+    const u = new Set();
+    if (Array.isArray(dE)) dE.forEach(function (x) { u.add(String(x)); });
+    if (Array.isArray(dP)) dP.forEach(function (x) { u.add(String(x)); });
+    const out = [...u].sort();
+    if (out.length) return out;
+    const parts = String(mes).split('-');
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    return gerarDiasUteisPadrao(y, m);
+  }
+
+  /**
    * @param {string} ymd
    * @returns {number} 0=Seg … 6=Dom
    */
@@ -220,6 +240,7 @@
   global.MaycredCalendar = {
     gerarDiasUteisPadrao,
     getDiasUteisDoMes,
+    mergeDiasUteisMesProdutos,
     diasUteisPassados,
     diasUteisRestantes,
     diasUteisTotais,
